@@ -1,0 +1,765 @@
+/**
+ * Classic Board Arena — Xiangqi (中國象棋 9×10) Complete Rule Engine
+ * Implements Palace bounds, Flying General (王不見王), Blocked Elephant Eye (塞象眼),
+ * Hobbled Horse Leg (蹩馬腿), Cannon Screen Jump Capture (隔山打牛), Soldier River Crossing,
+ * Strict Legal Check Filter, Checkmate & Stalemate-is-Loss (困斃判負), and 120-ply Draw rule.
+ */
+(function (global) {
+  'use strict';
+
+  const BoardArena = global.BoardArena;
+  if (!BoardArena || typeof BoardArena.registerRule !== 'function') {
+    throw new Error('BoardArena.registerRule is required before loading xiangqi.js');
+  }
+
+  const ROWS = 10;
+  const COLS = 9;
+
+  const SIDE_LABELS = {
+    1: { zh: '紅方', en: 'Red' },
+    2: { zh: '黑方', en: 'Black' }
+  };
+
+  const PIECE_LABELS = {
+    1: { K: '帥', A: '仕', E: '相', H: '傌', R: '俥', C: '炮', P: '兵' },
+    2: { K: '將', A: '士', E: '象', H: '馬', R: '車', C: '砲', P: '卒' }
+  };
+
+  const BASE_VALUES = {
+    K: 100000,
+    R: 900,
+    C: 450,
+    H: 400,
+    E: 200,
+    A: 200,
+    P: 100
+  };
+
+  const ORTHO_DIRS = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
+  ];
+
+  const DIAG_DIRS = [
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+    [1, 1]
+  ];
+
+  const ELEPHANT_DELTAS = [
+    [-2, -2, -1, -1],
+    [-2, 2, -1, 1],
+    [2, -2, 1, -1],
+    [2, 2, 1, 1]
+  ];
+
+  // [dr, dc, legR, legC] from the moving Horse's square
+  const HORSE_DELTAS = [
+    [-2, -1, -1, 0],
+    [-2, 1, -1, 0],
+    [2, -1, 1, 0],
+    [2, 1, 1, 0],
+    [-1, -2, 0, -1],
+    [1, -2, 0, -1],
+    [-1, 2, 0, 1],
+    [1, 2, 0, 1]
+  ];
+
+  function opponentOf(p) {
+    return p === 1 ? 2 : 1;
+  }
+
+  function inBounds(r, c) {
+    return r >= 0 && r < ROWS && c >= 0 && c < COLS;
+  }
+
+  function inPalace(player, r, c) {
+    if (c < 3 || c > 5) return false;
+    return player === 1 ? r >= 7 && r <= 9 : r >= 0 && r <= 2;
+  }
+
+  function createEmptyBoard() {
+    const b = new Array(ROWS);
+    for (let r = 0; r < ROWS; r++) {
+      b[r] = [null, null, null, null, null, null, null, null, null];
+    }
+    return b;
+  }
+
+  function cloneBoard(board) {
+    const out = new Array(ROWS);
+    for (let r = 0; r < ROWS; r++) {
+      const row = board[r];
+      const nextRow = new Array(COLS);
+      for (let c = 0; c < COLS; c++) {
+        const cell = row[c];
+        nextRow[c] = cell ? { owner: cell.owner, type: cell.type } : null;
+      }
+      out[r] = nextRow;
+    }
+    return out;
+  }
+
+  function cloneState(state) {
+    return {
+      gameId: 'xiangqi',
+      rows: ROWS,
+      cols: COLS,
+      board: cloneBoard(state.board),
+      currentPlayer: state.currentPlayer,
+      status: state.status,
+      winner: state.winner,
+      endReason: state.endReason,
+      inCheck: state.inCheck || 0,
+      turnNumber: state.turnNumber || 1,
+      moveCount: state.moveCount || 0,
+      halfMoveClock: state.halfMoveClock || 0,
+      lastMove: state.lastMove
+        ? {
+            id: state.lastMove.id,
+            from: state.lastMove.from ? { r: state.lastMove.from.r, c: state.lastMove.from.c } : null,
+            to: state.lastMove.to ? { r: state.lastMove.to.r, c: state.lastMove.to.c } : null,
+            piece: state.lastMove.piece,
+            isCapture: state.lastMove.isCapture,
+            notation: state.lastMove.notation,
+            player: state.lastMove.player
+          }
+        : null,
+      captured: {
+        1: state.captured && state.captured[1] ? state.captured[1].slice() : [],
+        2: state.captured && state.captured[2] ? state.captured[2].slice() : []
+      }
+    };
+  }
+
+  function createInitialState() {
+    const board = createEmptyBoard();
+    const backRow = ['R', 'H', 'E', 'A', 'K', 'A', 'E', 'H', 'R'];
+
+    for (let c = 0; c < COLS; c++) {
+      board[0][c] = { owner: 2, type: backRow[c] };
+      board[9][c] = { owner: 1, type: backRow[c] };
+    }
+
+    // Cannons
+    board[2][1] = { owner: 2, type: 'C' };
+    board[2][7] = { owner: 2, type: 'C' };
+    board[7][1] = { owner: 1, type: 'C' };
+    board[7][7] = { owner: 1, type: 'C' };
+
+    // Five Soldiers each on even columns
+    for (let c = 0; c < COLS; c += 2) {
+      board[3][c] = { owner: 2, type: 'P' };
+      board[6][c] = { owner: 1, type: 'P' };
+    }
+
+    return {
+      gameId: 'xiangqi',
+      rows: ROWS,
+      cols: COLS,
+      board: board,
+      currentPlayer: 1,
+      status: 'playing',
+      winner: null,
+      endReason: null,
+      inCheck: 0,
+      turnNumber: 1,
+      moveCount: 0,
+      halfMoveClock: 0,
+      lastMove: null,
+      captured: { 1: [], 2: [] }
+    };
+  }
+
+  function findGeneral(board, player) {
+    // Check own palace first for O(1) typical lookup, fallback to full scan for custom test positions
+    const rStart = player === 1 ? 7 : 0;
+    const rEnd = player === 1 ? 9 : 2;
+    for (let r = rStart; r <= rEnd; r++) {
+      for (let c = 3; c <= 5; c++) {
+        const p = board[r][c];
+        if (p && p.owner === player && p.type === 'K') return { r: r, c: c };
+      }
+    }
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const p = board[r][c];
+        if (p && p.owner === player && p.type === 'K') return { r: r, c: c };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns true if `player`'s General is currently attacked by any opponent piece
+   * OR directly faces the opponent's General on an open file (Flying General 王不見王).
+   */
+  function isInCheck(board, player) {
+    const kingPos = findGeneral(board, player);
+    if (!kingPos) return true;
+    const kr = kingPos.r;
+    const kc = kingPos.c;
+    const opp = opponentOf(player);
+
+    // 1. Orthogonal rays: Chariots (R), Cannons (C) over 1 screen, Flying General (K), and adjacent Soldiers (P)
+    for (let d = 0; d < 4; d++) {
+      const dr = ORTHO_DIRS[d][0];
+      const dc = ORTHO_DIRS[d][1];
+      let screens = 0;
+      let dist = 1;
+      let nr = kr + dr;
+      let nc = kc + dc;
+
+      while (inBounds(nr, nc)) {
+        const cell = board[nr][nc];
+        if (cell) {
+          if (screens === 0) {
+            if (cell.owner === opp) {
+              if (cell.type === 'R' || cell.type === 'K') return true;
+              if (dist === 1 && cell.type === 'P') {
+                const oppFwd = opp === 1 ? -1 : 1;
+                const oppCrossed = opp === 1 ? nr <= 4 : nr >= 5;
+                if (nr + oppFwd === kr && nc === kc) return true;
+                if (oppCrossed && nr === kr && Math.abs(nc - kc) === 1) return true;
+              }
+            }
+            screens = 1;
+          } else {
+            if (cell.owner === opp && cell.type === 'C') return true;
+            break;
+          }
+        }
+        nr += dr;
+        nc += dc;
+        dist++;
+      }
+    }
+
+    // 2. Enemy Horses (H) checking (kr, kc) — leg is adjacent to the enemy Horse!
+    for (let i = 0; i < 8; i++) {
+      const dkr = HORSE_DELTAS[i][0];
+      const dkc = HORSE_DELTAS[i][1];
+      const hr = kr + dkr;
+      const hc = kc + dkc;
+      if (!inBounds(hr, hc)) continue;
+      const cell = board[hr][hc];
+      if (cell && cell.owner === opp && cell.type === 'H') {
+        // From (hr, hc) jumping (-dkr, -dkc) to (kr, kc), the Horse's orthogonal leg is:
+        const legR = Math.abs(dkr) === 2 ? hr - dkr / 2 : hr;
+        const legC = Math.abs(dkc) === 2 ? hc - dkc / 2 : hc;
+        if (!board[legR][legC]) return true;
+      }
+    }
+
+    return false;
+  }
+
+  function formatNotation(piece, r, c, nr, nc, isCapture) {
+    const label = PIECE_LABELS[piece.owner][piece.type];
+    const colLabel = piece.owner === 1 ? 9 - c : c + 1;
+    const destColLabel = piece.owner === 1 ? 9 - nc : nc + 1;
+    let actionChar;
+    let targetVal;
+    if (nr === r) {
+      actionChar = '平';
+      targetVal = destColLabel;
+    } else {
+      const movingForward = piece.owner === 1 ? nr < r : nr > r;
+      actionChar = movingForward ? '進' : '退';
+      if (piece.type === 'H' || piece.type === 'E' || piece.type === 'A') {
+        targetVal = destColLabel;
+      } else {
+        targetVal = Math.abs(nr - r);
+      }
+    }
+    return label + colLabel + actionChar + targetVal + (isCapture ? '吃' : '');
+  }
+
+  function tryPushLegalMove(board, player, piece, r, c, nr, nc, out) {
+    const target = board[nr][nc];
+    if (target && target.owner === player) return false;
+
+    // Fast in-place simulation & restore
+    board[nr][nc] = piece;
+    board[r][c] = null;
+    const illegal = isInCheck(board, player);
+    board[r][c] = piece;
+    board[nr][nc] = target;
+
+    if (illegal) return false;
+
+    if (out) {
+      const isCap = Boolean(target);
+      out.push({
+        id: 'r' + r + 'c' + c + '-r' + nr + 'c' + nc,
+        from: { r: r, c: c },
+        to: { r: nr, c: nc },
+        piece: piece.type,
+        isCapture: isCap,
+        captures: isCap ? [{ r: nr, c: nc }] : [],
+        notation: formatNotation(piece, r, c, nr, nc, isCap)
+      });
+    }
+    return true;
+  }
+
+  /**
+   * Generates legal moves for a single piece at (r, c).
+   * If `out` is null, returns true immediately upon finding the first legal move (early-exit check).
+   */
+  function generatePieceLegalMoves(board, r, c, out) {
+    const piece = board[r][c];
+    if (!piece) return false;
+    const player = piece.owner;
+    const type = piece.type;
+
+    if (type === 'K') {
+      for (let i = 0; i < 4; i++) {
+        const nr = r + ORTHO_DIRS[i][0];
+        const nc = c + ORTHO_DIRS[i][1];
+        if (inPalace(player, nr, nc)) {
+          if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+        }
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'A') {
+      for (let i = 0; i < 4; i++) {
+        const nr = r + DIAG_DIRS[i][0];
+        const nc = c + DIAG_DIRS[i][1];
+        if (inPalace(player, nr, nc)) {
+          if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+        }
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'E') {
+      for (let i = 0; i < 4; i++) {
+        const nr = r + ELEPHANT_DELTAS[i][0];
+        const nc = c + ELEPHANT_DELTAS[i][1];
+        if (!inBounds(nr, nc)) continue;
+        // Cannot cross the river
+        if (player === 1 && nr < 5) continue;
+        if (player === 2 && nr > 4) continue;
+        // Blocked Elephant Eye (塞象眼)
+        const eyeR = r + ELEPHANT_DELTAS[i][2];
+        const eyeC = c + ELEPHANT_DELTAS[i][3];
+        if (board[eyeR][eyeC] !== null) continue;
+        if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'H') {
+      for (let i = 0; i < 8; i++) {
+        const nr = r + HORSE_DELTAS[i][0];
+        const nc = c + HORSE_DELTAS[i][1];
+        if (!inBounds(nr, nc)) continue;
+        // Hobbled Horse Leg (蹩馬腿)
+        const legR = r + HORSE_DELTAS[i][2];
+        const legC = c + HORSE_DELTAS[i][3];
+        if (board[legR][legC] !== null) continue;
+        if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'R') {
+      for (let d = 0; d < 4; d++) {
+        const dr = ORTHO_DIRS[d][0];
+        const dc = ORTHO_DIRS[d][1];
+        let nr = r + dr;
+        let nc = c + dc;
+        while (inBounds(nr, nc)) {
+          const cell = board[nr][nc];
+          if (!cell) {
+            if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+          } else {
+            if (cell.owner !== player) {
+              if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+            }
+            break;
+          }
+          nr += dr;
+          nc += dc;
+        }
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'C') {
+      for (let d = 0; d < 4; d++) {
+        const dr = ORTHO_DIRS[d][0];
+        const dc = ORTHO_DIRS[d][1];
+        let nr = r + dr;
+        let nc = c + dc;
+        let jumpedScreen = false;
+        while (inBounds(nr, nc)) {
+          const cell = board[nr][nc];
+          if (!jumpedScreen) {
+            if (!cell) {
+              if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+            } else {
+              jumpedScreen = true;
+            }
+          } else if (cell) {
+            if (cell.owner !== player) {
+              if (tryPushLegalMove(board, player, piece, r, c, nr, nc, out) && !out) return true;
+            }
+            break;
+          }
+          nr += dr;
+          nc += dc;
+        }
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    if (type === 'P') {
+      const fwd = player === 1 ? -1 : 1;
+      const crossedRiver = player === 1 ? r <= 4 : r >= 5;
+      const fr = r + fwd;
+      if (inBounds(fr, c)) {
+        if (tryPushLegalMove(board, player, piece, r, c, fr, c, out) && !out) return true;
+      }
+      if (crossedRiver) {
+        if (inBounds(r, c - 1)) {
+          if (tryPushLegalMove(board, player, piece, r, c, r, c - 1, out) && !out) return true;
+        }
+        if (inBounds(r, c + 1)) {
+          if (tryPushLegalMove(board, player, piece, r, c, r, c + 1, out) && !out) return true;
+        }
+      }
+      return out ? out.length > 0 : false;
+    }
+
+    return false;
+  }
+
+  function hasAnyLegalMove(board, player) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = board[r][c];
+        if (cell && cell.owner === player) {
+          if (generatePieceLegalMoves(board, r, c, null)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function getLegalMoves(state, player) {
+    if (!state || state.status !== 'playing') return [];
+    const p = player || state.currentPlayer;
+    const moves = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = state.board[r][c];
+        if (cell && cell.owner === p) {
+          generatePieceLegalMoves(state.board, r, c, moves);
+        }
+      }
+    }
+    return moves;
+  }
+
+  function getMovesForSource(state, source) {
+    if (!state || state.status !== 'playing' || !source) return [];
+    if (typeof source.r !== 'number' || typeof source.c !== 'number') return [];
+    if (!inBounds(source.r, source.c)) return [];
+    const cell = state.board[source.r][source.c];
+    if (!cell || cell.owner !== state.currentPlayer) return [];
+    const moves = [];
+    generatePieceLegalMoves(state.board, source.r, source.c, moves);
+    return moves;
+  }
+
+  function diagnoseZeroMoves(state, r, c, piece) {
+    const player = piece.owner;
+    if (state.inCheck === player || isInCheck(state.board, player)) {
+      return {
+        zh: '己方正受將軍，此「' + PIECE_LABELS[player][piece.type] + '」無法解將，請選擇能應將的棋子',
+        en: 'Your General is in check and this piece cannot resolve check'
+      };
+    }
+    if (piece.type === 'H') {
+      return {
+        zh: '此「' + PIECE_LABELS[player].H + '」受蹩馬腿阻擋或受牽制（移動會導致帥／將受攻或飛將）',
+        en: 'Horse is blocked at the leg (hobbled) or pinned to your General'
+      };
+    }
+    if (piece.type === 'E') {
+      return {
+        zh: '此「' + PIECE_LABELS[player].E + '」受塞象眼阻擋或受牽制保護帥／將',
+        en: 'Elephant eye is blocked or piece is pinned to your General'
+      };
+    }
+    return {
+      zh: '此「' + PIECE_LABELS[player][piece.type] + '」目前受阻或受牽制（移動會暴露帥／將或造成王見王）',
+      en: 'This piece is blocked or pinned (moving it would expose your General)'
+    };
+  }
+
+  function canSelectSource(state, source, player) {
+    if (!state || state.status !== 'playing') {
+      return {
+        selectable: false,
+        hasMoves: false,
+        reasonZh: '對局已結束',
+        reasonEn: 'Game has already ended'
+      };
+    }
+    const p = player || state.currentPlayer;
+    if (p !== state.currentPlayer) {
+      return {
+        selectable: false,
+        hasMoves: false,
+        reasonZh: '目前輪到' + SIDE_LABELS[state.currentPlayer].zh + '行動',
+        reasonEn: 'It is currently ' + SIDE_LABELS[state.currentPlayer].en + "'s turn"
+      };
+    }
+    if (!source || typeof source.r !== 'number' || typeof source.c !== 'number' || !inBounds(source.r, source.c)) {
+      return {
+        selectable: false,
+        hasMoves: false,
+        reasonZh: '請點擊棋盤交叉點上的己方棋子',
+        reasonEn: 'Click one of your own pieces on the board'
+      };
+    }
+    const cell = state.board[source.r][source.c];
+    if (!cell) {
+      return {
+        selectable: false,
+        hasMoves: false,
+        reasonZh: '此交叉點為空位，請點擊' + SIDE_LABELS[p].zh + '棋子',
+        reasonEn: 'Empty intersection — select a ' + SIDE_LABELS[p].en + ' piece'
+      };
+    }
+    if (cell.owner !== p) {
+      return {
+        selectable: false,
+        hasMoves: false,
+        reasonZh: '這是對手的「' + PIECE_LABELS[cell.owner][cell.type] + '」，請點選' + SIDE_LABELS[p].zh + '棋子',
+        reasonEn: 'Opponent piece — select your own ' + SIDE_LABELS[p].en + ' piece'
+      };
+    }
+    const moves = getMovesForSource(state, source);
+    if (moves.length === 0) {
+      const diag = diagnoseZeroMoves(state, source.r, source.c, cell);
+      return {
+        selectable: true,
+        hasMoves: false,
+        reasonZh: diag.zh,
+        reasonEn: diag.en
+      };
+    }
+    const capCount = moves.filter(function (m) {
+      return m.isCapture;
+    }).length;
+    return {
+      selectable: true,
+      hasMoves: true,
+      reasonZh:
+        '已選取「' +
+        PIECE_LABELS[p][cell.type] +
+        '」：可走 ' +
+        moves.length +
+        ' 步' +
+        (capCount > 0 ? '（含 ' + capCount + ' 個紅框可吃目標）' : ''),
+      reasonEn:
+        'Selected ' +
+        PIECE_LABELS[p][cell.type] +
+        ': ' +
+        moves.length +
+        ' legal move(s)' +
+        (capCount > 0 ? ' (' + capCount + ' capture target(s))' : '')
+    };
+  }
+
+  function resolveMove(state, move) {
+    if (!move) return null;
+    if (move.from && move.to && typeof move.from.r === 'number' && typeof move.to.r === 'number') {
+      return move;
+    }
+    const legal = getLegalMoves(state, state.currentPlayer);
+    for (let i = 0; i < legal.length; i++) {
+      if (legal[i].id === move.id) return legal[i];
+    }
+    return null;
+  }
+
+  function applyMove(state, rawMove) {
+    const move = resolveMove(state, rawMove);
+    if (!move || state.status !== 'playing') return cloneState(state);
+
+    const next = cloneState(state);
+    const mover = state.currentPlayer;
+    const opp = opponentOf(mover);
+    const fr = move.from.r;
+    const fc = move.from.c;
+    const tr = move.to.r;
+    const tc = move.to.c;
+
+    const movingPiece = next.board[fr][fc];
+    if (!movingPiece || movingPiece.owner !== mover) {
+      return next;
+    }
+
+    const capturedPiece = next.board[tr][tc];
+    next.board[tr][tc] = movingPiece;
+    next.board[fr][fc] = null;
+
+    if (capturedPiece) {
+      next.captured[mover].push(capturedPiece.type);
+      next.halfMoveClock = 0;
+    } else {
+      next.halfMoveClock = (state.halfMoveClock || 0) + 1;
+    }
+
+    next.moveCount = (state.moveCount || 0) + 1;
+    next.turnNumber = (state.turnNumber || 1) + 1;
+    next.currentPlayer = opp;
+    next.lastMove = {
+      id: move.id,
+      from: { r: fr, c: fc },
+      to: { r: tr, c: tc },
+      piece: movingPiece.type,
+      isCapture: Boolean(capturedPiece),
+      notation: move.notation || formatNotation(movingPiece, fr, fc, tr, tc, Boolean(capturedPiece)),
+      player: mover
+    };
+
+    // Immediate General capture guard (should not occur in legal play, kept as defensive safety)
+    if (capturedPiece && capturedPiece.type === 'K') {
+      next.status = 'ended';
+      next.winner = mover;
+      next.endReason = 'checkmate';
+      next.inCheck = opp;
+      return next;
+    }
+
+    const oppInCheck = isInCheck(next.board, opp);
+    next.inCheck = oppInCheck ? opp : 0;
+
+    if (!hasAnyLegalMove(next.board, opp)) {
+      next.status = 'ended';
+      next.winner = mover;
+      // In Xiangqi, stalemate (困斃) is a LOSS for the stalemated player!
+      next.endReason = oppInCheck ? 'checkmate' : 'stalemate';
+      return next;
+    }
+
+    if (next.halfMoveClock >= 120) {
+      next.status = 'ended';
+      next.winner = 0;
+      next.endReason = 'draw_120_ply';
+    }
+
+    return next;
+  }
+
+  function piecePositionalScore(piece, r, c) {
+    // Normalize row from owner's perspective: relR = 0 is enemy back rank, relR = 9 is own back rank
+    const relR = piece.owner === 1 ? r : 9 - r;
+    const centerDist = Math.abs(4 - c);
+    const t = piece.type;
+
+    if (t === 'P') {
+      // Across river (relR <= 4): base jumps from 100 to 200 (+100 bonus) + palace pressure!
+      if (relR <= 4) {
+        let bonus = 100; // Total 200 across river
+        if (relR >= 1 && relR <= 3) bonus += 35 - centerDist * 6;
+        else if (relR === 0) bonus += 10; // Bottom Soldier ("老兵") loses forward step
+        else bonus += 20 - centerDist * 4;
+        return bonus;
+      }
+      return relR === 5 ? 18 - centerDist * 3 : 0;
+    }
+
+    if (t === 'R') {
+      let bonus = (4 - centerDist) * 4;
+      if (relR <= 4) bonus += 22;
+      if (relR === 2 || relR === 1) bonus += 16; // Throat / Soldier-rank control
+      if (c === 3 || c === 5) bonus += 14; // Rib files (肋道)
+      return bonus;
+    }
+
+    if (t === 'H') {
+      if (relR === 9 && (c === 1 || c === 7)) return -18; // Undeveloped corner horse
+      let bonus = 24 - centerDist * 5 - Math.abs(3.5 - relR) * 4;
+      if (relR >= 1 && relR <= 4 && centerDist <= 2) bonus += 24;
+      return bonus;
+    }
+
+    if (t === 'C') {
+      let bonus = 0;
+      if (c === 4) bonus += 32; // Central Cannon (中炮)
+      if (relR <= 3) bonus += 14;
+      return bonus;
+    }
+
+    if (t === 'A' || t === 'E') {
+      // Linked central palace/river guard
+      if (t === 'A' && relR === 8 && c === 4) return 18;
+      if (t === 'E' && relR === 7 && c === 4) return 18;
+      return 6;
+    }
+
+    if (t === 'K') {
+      return relR === 9 && c === 4 ? 12 : 0;
+    }
+
+    return 0;
+  }
+
+  function evaluate(state, perspectivePlayer) {
+    const me = perspectivePlayer || state.currentPlayer;
+    const opp = opponentOf(me);
+
+    if (state.status === 'ended') {
+      if (state.winner === 0 || state.winner === null) return 0;
+      return state.winner === me ? 100000 : -100000;
+    }
+
+    let score = 0;
+    const board = state.board;
+
+    for (let r = 0; r < ROWS; r++) {
+      const row = board[r];
+      for (let c = 0; c < COLS; c++) {
+        const cell = row[c];
+        if (!cell) continue;
+        const val = BASE_VALUES[cell.type] + piecePositionalScore(cell, r, c);
+        if (cell.owner === me) score += val;
+        else score -= val;
+      }
+    }
+
+    if (state.inCheck === opp) score += 55;
+    else if (state.inCheck === me) score -= 55;
+
+    return score;
+  }
+
+  BoardArena.registerRule('xiangqi', {
+    id: 'xiangqi',
+    selectionMode: 'piece',
+    rows: ROWS,
+    cols: COLS,
+    sideLabels: SIDE_LABELS,
+    pieceLabels: PIECE_LABELS,
+    createInitialState: createInitialState,
+    cloneState: cloneState,
+    getLegalMoves: getLegalMoves,
+    getMovesForSource: getMovesForSource,
+    canSelectSource: canSelectSource,
+    applyMove: applyMove,
+    evaluate: evaluate,
+    isInCheck: isInCheck
+  });
+})(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,95 @@
+# ============================================
+# Date: 2026-11-05
+# Version: v1.0.1
+# Changes: Require POSTGRES_PASSWORD from .env instead of a hardcoded fallback
+# 修改: POSTGRES_PASSWORD 必須由 .env 提供，移除寫死的預設密碼
+# ============================================
+# =============================================================================
+# Oracle Cloud Always Free (VM.Standard.A1.Flex: 2 OCPU, 12 GB RAM) Compose Stack
+# Resource Allocation per Spec §8:
+#   - PostgreSQL: 4 GB RAM
+#   - Game Service (ASP.NET Core + SignalR): 4 GB RAM, 1 OCPU
+#   - Bot Worker Queue: 2 GB RAM, max 1 OCPU
+#   - Caddy Reverse Proxy: 2 GB RAM
+# =============================================================================
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: board_arena_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: board_arena
+      POSTGRES_USER: arena
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arena -d board_arena"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  game:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: board-arena:latest
+    container_name: board_arena_game
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=board_arena;Username=arena;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}"
+      BOT_WORKER_MAX_CONCURRENCY: "1"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 4G
+
+  bot-worker:
+    image: board-arena:latest
+    container_name: board_arena_bot_worker
+    restart: unless-stopped
+    command: ["dotnet", "BoardArena.Cloud.dll", "--worker-only"]
+    depends_on:
+      - game
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 2G
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: board_arena_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - game
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 2G
+
+volumes:
+  pg_data:
+  caddy_data:
+  caddy_config:

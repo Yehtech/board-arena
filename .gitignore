@@ -1,0 +1,31 @@
+# 編譯產物
+*.exe
+*.dll
+*.pdb
+bin/
+obj/
+dist/
+build/
+*.spec
+__pycache__/
+
+# 本機資料與工作檔（含玩家資料，不可公開）
+_data/
+_workspace/
+
+# 內部規格與設計文件
+docs/
+SPECIFICATION.md
+*規格書*
+verify_board_arena_audit.ps1
+
+# 環境變數
+.env
+.env.*
+!.env.example
+
+# 系統 / 編輯器
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

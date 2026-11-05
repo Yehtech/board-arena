@@ -1,0 +1,18 @@
+# =============================================================================
+# Caddyfile — Reverse Proxy for HTTP + SignalR WebSockets behind Cloudflare
+# =============================================================================
+{
+    admin off
+}
+
+:80 {
+    encode zstd gzip
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    reverse_proxy game:8080
+}

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>Running Classic Board Arena Automated Test Suite...</title>
+  <style>
+    body {
+      background: #0b1120;
+      color: #f8fafc;
+      font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+      padding: 24px;
+      margin: 0;
+    }
+    h1 { color: #fde047; margin: 0 0 8px 0; font-size: 22px; }
+    .summary {
+      font-size: 18px;
+      font-weight: 800;
+      padding: 12px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary.pass { background: #064e3b; border: 2px solid #22c55e; color: #86efac; }
+    .summary.fail { background: #7f1d1d; border: 2px solid #ef4444; color: #fecaca; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .row {
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #1e293b;
+      border-left: 4px solid #22c55e;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      font-variant-numeric: tabular-nums;
+    }
+    .row.fail {
+      border-left-color: #ef4444;
+      background: #450a0a;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 World Classic Board Games Arena — 八大棋種規則、點擊合法步高亮與四階 AI 自動化驗證套件</h1>
+  <div id="summaryBanner" class="summary">執行中...</div>
+  <div id="resultsGrid" class="grid"></div>
+
+  <script src="../js/rules/rules-core.js"></script>
+  <script src="../js/glicko2.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/sound-fx.js"></script>
+  <script src="../js/ads-manager.js"></script>
+  <script src="../js/rules/othello.js"></script>
+  <script src="../js/rules/xiangqi.js"></script>
+  <script src="../js/rules/go.js"></script>
+  <script src="../js/rules/gomoku.js"></script>
+  <script src="../js/rules/draughts.js"></script>
+  <script src="../js/rules/chess.js"></script>
+  <script src="../js/rules/shogi.js"></script>
+  <script src="../js/rules/backgammon.js"></script>
+  <script src="../js/ai/ai-engine.js"></script>
+  <script src="../js/render/board-renderer.js"></script>
+  <script src="../js/net/arena-client.js"></script>
+  <script src="../js/app.js"></script>
+
+  <script>
+    (function () {
+      const results = [];
+      function check(name, cond, detail) {
+        results.push({ name: name, ok: Boolean(cond), detail: detail || '' });
+      }
+
+      try {
+        // 1. Catalog & PlayOK Reference Counts
+        const cat = BoardArena.GAME_CATALOG;
+        check(
+          '1. PlayOK 8-Game Catalog & Reference Counts (39/448/228/33/290/583/8/556)',
+          cat.length === 8 &&
+            cat.map((x) => x.baseOnline).join(',') === '39,448,228,33,290,583,8,556',
+          cat.map((x) => x.id + ':' + x.baseOnline).join(' ')
+        );
+
+        // 2. Glicko-2 Math Verification (Mark Glickman Paper Example)
+        const gRes = BoardArena.Glicko2.rate(
+          { rating: 1500, rd: 200, volatility: 0.06 },
+          [
+            { rating: 1400, rd: 30, score: 1.0 },
+            { rating: 1550, rd: 100, score: 0.0 },
+            { rating: 1700, rd: 300, score: 0.0 }
+          ]
+        );
+        check(
+          '2. Glicko-2 Canonical Math (1500/200 -> 1464.06 / RD 151.52)',
+          Math.abs(gRes.rating - 1464.06) < 0.3 && Math.abs(gRes.rd - 151.52) < 0.3,
+          'R=' + gRes.rating + ', RD=' + gRes.rd
+        );
+
+        // 3. Othello (8x8) Rules
+        const othello = BoardArena.getRule('othello');
+        const oState0 = othello.createInitialState();
+        const oMoves0 = othello.getLegalMoves(oState0, 1);
+        const oState1 = othello.applyMove(oState0, oMoves0[0]);
+        check(
+          '3. Othello 8x8 Initial 4 Legal Moves & Outflank Disc Flip',
+          oMoves0.length === 4 && oState1.counts[1] === 4 && oState1.counts[2] === 1,
+          'legal=' + oMoves0.length + ', black=' + oState1.counts[1] + ', white=' + oState1.counts[2]
+        );
+
+        // 4. Xiangqi (9x10) Rules & Piece-Click Legal Moves / Cannon Screen Capture / Horse Leg Block / Flying General
+        const xiangqi = BoardArena.getRule('xiangqi');
+        const xState0 = xiangqi.createInitialState();
+        const cannonMoves = xiangqi.getMovesForSource(xState0, { r: 7, c: 1 });
+        const cannonCaps = cannonMoves.filter((m) => m.isCapture);
+        const horseMoves0 = xiangqi.getMovesForSource(xState0, { r: 9, c: 1 });
+        // Block horse leg at (8,1) and verify horse at (9,1) has 0 moves
+        const xBlocked = xiangqi.cloneState(xState0);
+        xBlocked.board[8][1] = { owner: 1, type: 'P' };
+        const horseMovesBlocked = xiangqi.getMovesForSource(xBlocked, { r: 9, c: 1 });
+        check(
+          '4. Xiangqi Piece-Click Legal Moves (Cannon 隔山打牛=1 cap + 11 empty, 蹩馬腿 block)',
+          cannonMoves.length === 12 &&
+            cannonCaps.length === 1 &&
+            cannonCaps[0].to.r === 0 &&
+            cannonCaps[0].to.c === 1 &&
+            horseMoves0.length === 2 &&
+            horseMovesBlocked.length === 0,
+          'cannon=' + cannonMoves.length + ' (cap=' + cannonCaps.length + '), horseBlocked=' + horseMovesBlocked.length
+        );
+
+        // 5. Go (9/13/19) Rules: Capture, Ko, & Double-Pass Scoring
+        const go = BoardArena.getRule('go');
+        const go9 = go.createInitialState({ boardSize: 9 });
+        // Surround a white stone at (1,1) with black stones at (0,1), (2,1), (1,0) and capture at (1,2)
+        go9.board[1][1] = 2;
+        go9.board[0][1] = 1;
+        go9.board[2][1] = 1;
+        go9.board[1][0] = 1;
+        const goCapMove = go.getLegalMoves(go9, 1).find((m) => m.to && m.to.r === 1 && m.to.c === 2);
+        const goAfterCap = go.applyMove(go9, goCapMove);
+        // Double pass -> scoring -> confirm_score
+        const goPass1 = go.applyMove(goAfterCap, { id: 'pass', action: 'pass' });
+        const goPass2 = go.applyMove(goPass1, { id: 'pass', action: 'pass' });
+        const goScored = go.applyMove(goPass2, { id: 'confirm_score', action: 'confirm_score' });
+        check(
+          '5. Go 9/13/19 Liberties Capture, Double-Pass Scoring & Chinese Area Settlement',
+          Boolean(goCapMove && goCapMove.isCapture) &&
+            goAfterCap.board[1][1] === 0 &&
+            goPass2.status === 'scoring' &&
+            goScored.status === 'ended',
+          'captured=' + goAfterCap.captures[1] + ', status=' + goScored.status
+        );
+
+        // 6. Gomoku (15x15) 5-in-a-Row & Swap Rule
+        const gomoku = BoardArena.getRule('gomoku');
+        let gmState = gomoku.createInitialState({ swapRule: true });
+        gmState = gomoku.applyMove(gmState, { id: '7,7', to: { r: 7, c: 7 } }); // 1. B
+        gmState = gomoku.applyMove(gmState, { id: '7,8', to: { r: 7, c: 8 } }); // 2. W
+        gmState = gomoku.applyMove(gmState, { id: '8,7', to: { r: 8, c: 7 } }); // 3. B
+        const swapAvailable = gomoku.getLegalMoves(gmState, 2).some((m) => m.action === 'swap');
+        // Test 5-in-a-row win
+        let gmWin = gomoku.createInitialState({ swapRule: false });
+        for (let i = 0; i < 4; i++) {
+          gmWin = gomoku.applyMove(gmWin, { id: '7,' + i, to: { r: 7, c: i } });
+          gmWin = gomoku.applyMove(gmWin, { id: '8,' + i, to: { r: 8, c: i } });
+        }
+        gmWin = gomoku.applyMove(gmWin, { id: '7,4', to: { r: 7, c: 4 } });
+        check(
+          '6. Gomoku 15x15 5-in-a-Row Detection & Swap Rule Option',
+          swapAvailable && gmWin.status === 'ended' && gmWin.winner === 1 && gmWin.winningLine.length >= 5,
+          'swap=' + swapAvailable + ', winner=' + gmWin.winner
+        );
+
+        // 7. International Draughts (10x10 FMJD): Mandatory Capture, Multi-Jump & Flying King
+        const draughts = BoardArena.getRule('draughts');
+        const drState = draughts.createInitialState();
+        const drMoves0 = draughts.getLegalMoves(drState, 1);
+        // Set up a double-jump chain + Flying King test
+        const drChain = draughts.createInitialState();
+        for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) drChain.board[r][c] = null;
+        drChain.board[7][2] = { owner: 1, king: false };
+        drChain.board[6][3] = { owner: 2, king: false };
+        drChain.board[4][5] = { owner: 2, king: false };
+        drChain.board[0][1] = { owner: 2, king: true };
+        const drCaps1 = draughts.getLegalMoves(drChain, 1);
+        const drAfterJump1 = draughts.applyMove(drChain, drCaps1[0]);
+        const drAfterJump2 = draughts.applyMove(drAfterJump1, draughts.getLegalMoves(drAfterJump1, 1)[0]);
+        check(
+          '7. International Draughts 10x10 Mandatory Capture & Multi-Jump Continuation',
+          drMoves0.length === 9 &&
+            drCaps1.length === 1 &&
+            drCaps1[0].isCapture &&
+            drAfterJump1.currentPlayer === 1 &&
+            Boolean(drAfterJump1.mustContinueFrom) &&
+            drAfterJump2.currentPlayer === 2,
+          'openingMoves=' + drMoves0.length + ', multiJumpKeptTurn=' + (drAfterJump1.currentPlayer === 1)
+        );
+
+        // 8. Chess (8x8 FIDE): Piece-Click Moves, Castling, En Passant & Promotion
+        const chess = BoardArena.getRule('chess');
+        const cState0 = chess.createInitialState();
+        const knightMoves = chess.getMovesForSource(cState0, { r: 7, c: 6 });
+        // Test Castling & En Passant setup
+        const cCastle = chess.cloneState(cState0);
+        cCastle.board[7][5] = null;
+        cCastle.board[7][6] = null;
+        const kingMoves = chess.getMovesForSource(cCastle, { r: 7, c: 4 });
+        const hasKingsideCastle = kingMoves.some((m) => m.castle === 'K');
+        check(
+          '8. Chess 8x8 Piece-Click Legal Moves & Kingside Castling (O-O)',
+          knightMoves.length === 2 && hasKingsideCastle,
+          'knightMoves=' + knightMoves.length + ', O-O=' + hasKingsideCastle
+        );
+
+        // 9. Shogi (9x9 + Komadai Drops & Nifu Forbidden Drop)
+        const shogi = BoardArena.getRule('shogi');
+        const sState0 = shogi.createInitialState();
+        const sMoves0 = shogi.getLegalMoves(sState0, 1);
+        const sDropTest = shogi.cloneState(sState0);
+        sDropTest.hands[1].P = 1;
+        sDropTest.hands[1].G = 1;
+        // File 0 already has a Sente unpromoted pawn at (6,0); verify Nifu prevents dropping P on file 0!
+        const pawnDrops = shogi.getMovesForSource(sDropTest, { zone: 'hand', owner: 1, piece: 'P' });
+        const pawnDropsOnFile0 = pawnDrops.filter((m) => m.to.c === 0);
+        const goldDrops = shogi.getMovesForSource(sDropTest, { zone: 'hand', owner: 1, piece: 'G' });
+        check(
+          '9. Shogi 9x9 Komadai Piece Drops & Nifu (二步) Forbidden Column Filter',
+          sMoves0.length === 30 && pawnDropsOnFile0.length === 0 && goldDrops.length > 30,
+          'opening=' + sMoves0.length + ', file0PawnDrops=' + pawnDropsOnFile0.length + ', goldDrops=' + goldDrops.length
+        );
+
+        // 10. Backgammon (24-Point + Dice + Mandatory Bar Re-entry + Blot Hit)
+        const bg = BoardArena.getRule('backgammon');
+        const bgState0 = bg.createInitialState({ seed: 42 });
+        const bgMoves0 = bg.getLegalMoves(bgState0, 1);
+        const bgBarTest = bg.cloneState(bgState0);
+        bgBarTest.bar[1] = 1;
+        const bgBarMoves = bg.getLegalMoves(bgBarTest, 1);
+        const allFromBar = bgBarMoves.every((m) => m.action === 'pass' || (m.from && m.from.zone === 'bar'));
+        check(
+          '10. Backgammon 24-Point Legal Dice Moves & Mandatory Bar Re-entry',
+          bgMoves0.length > 0 && allFromBar,
+          'openingMoves=' + bgMoves0.length + ', mandatoryBar=' + allFromBar
+        );
+
+        // 11. All 8 Games × 4 AI Levels (Easy / Normal / Hard / Master) Under 1s Budget
+        const gameIds = ['othello', 'xiangqi', 'go', 'gomoku', 'draughts', 'chess', 'shogi', 'backgammon'];
+        const levels = ['easy', 'normal', 'hard', 'master'];
+        for (let g = 0; g < gameIds.length; g++) {
+          const gid = gameIds[g];
+          const rule = BoardArena.getRule(gid);
+          const st = rule.createInitialState({ boardSize: 9, seed: 101 });
+          const legalIds = new Set(rule.getLegalMoves(st, st.currentPlayer).map((m) => m.id));
+          let allLevelsValid = true;
+          let maxElapsed = 0;
+          for (let l = 0; l < levels.length; l++) {
+            const t0 = performance.now();
+            const chosen = BoardArena.AI.chooseMove(gid, st, levels[l]);
+            const dt = Math.round(performance.now() - t0);
+            if (dt > maxElapsed) maxElapsed = dt;
+            if (!chosen || !legalIds.has(chosen.id) || dt > 1200) {
+              allLevelsValid = false;
+            }
+          }
+          check(
+            '11.' + (g + 1) + ' AI 4-Tier (' + gid.toUpperCase() + ': Easy/Normal/Hard/Master)',
+            allLevelsValid,
+            '4/4 legal, maxTime=' + maxElapsed + 'ms'
+          );
+        }
+
+        // 12. Single-Player Undo (Takeback) & Branching Restoration Verification
+        BoardArena.App.startBotMatch('xiangqi', 'normal', 1);
+        const mUndo = BoardArena.App.getStateStore().match;
+        const xLegal0 = mUndo.rule.getLegalMoves(mUndo.gameState, 1);
+        const xNext1 = mUndo.rule.applyMove(mUndo.gameState, xLegal0[0]);
+        mUndo.moveHistory.push({ seq: 1, player: 1, notation: xLegal0[0].notation, move: xLegal0[0] });
+        mUndo.stateHistory.push(mUndo.rule.cloneState(xNext1));
+        mUndo.gameState = xNext1;
+        const xLegal1 = mUndo.rule.getLegalMoves(mUndo.gameState, 2);
+        const xNext2 = mUndo.rule.applyMove(mUndo.gameState, xLegal1[0]);
+        mUndo.moveHistory.push({ seq: 2, player: 2, notation: xLegal1[0].notation, move: xLegal1[0] });
+        mUndo.stateHistory.push(mUndo.rule.cloneState(xNext2));
+        mUndo.gameState = xNext2;
+        const undoOk = BoardArena.App.undoBotMove();
+        check(
+          '12. Single-Player Undo (Takeback restores human turn & truncates history cleanly)',
+          undoOk &&
+            mUndo.moveHistory.length === 0 &&
+            mUndo.stateHistory.length === 1 &&
+            mUndo.gameState.currentPlayer === 1 &&
+            mUndo.undoCount === 1,
+          'undoOk=' + undoOk + ', moves=' + mUndo.moveHistory.length + ', undoCount=' + mUndo.undoCount
+        );
+
+        // 13. 8-Game AI Mentor Post-Game Review Engine (Win-Rate Timeline, Grades, Accuracy & Coach Commentary)
+        const xInit = xiangqi.createInitialState();
+        const xm1 = xiangqi.getMovesForSource(xInit, { r: 7, c: 1 }).find((m) => m.isCapture); // Cannon captures Knight
+        const xs1 = xiangqi.applyMove(xInit, xm1);
+        const xm2 = xiangqi.getLegalMoves(xs1, 2)[0];
+        const xs2 = xiangqi.applyMove(xs1, xm2);
+        const mentorRep = BoardArena.AI.analyzeMatchForMentor(
+          'xiangqi',
+          [xInit, xs1, xs2],
+          [
+            { seq: 1, player: 1, notation: xm1.notation, move: xm1 },
+            { seq: 2, player: 2, notation: xm2.notation, move: xm2 }
+          ],
+          1
+        );
+        check(
+          '13. AI Mentor Review Engine (Win-Rate Timeline, Move Grades, Accuracy % & Coach Diagnosis)',
+          mentorRep &&
+            mentorRep.winRateTimeline.length === 3 &&
+            mentorRep.steps.length === 2 &&
+            typeof mentorRep.stats[1].accuracy === 'number' &&
+            Boolean(mentorRep.steps[0].commentZh) &&
+            Boolean(mentorRep.steps[0].bestMove),
+          'steps=' +
+            mentorRep.steps.length +
+            ', P1Acc=' +
+            mentorRep.stats[1].accuracy +
+            '%, winRateAfter1=' +
+            mentorRep.steps[0].winAfterP1 +
+            '%'
+        );
+      } catch (err) {
+        check('Unexpected Exception', false, String(err && err.stack ? err.stack : err));
+      }
+
+      const passed = results.filter((r) => r.ok).length;
+      const total = results.length;
+      const allPass = passed === total;
+
+      document.title = (allPass ? 'PASS: ' : 'FAIL: ') + passed + '/' + total;
+      const banner = document.getElementById('summaryBanner');
+      banner.className = 'summary ' + (allPass ? 'pass' : 'fail');
+      banner.textContent =
+        (allPass ? '✅ ALL TESTS PASSED: ' : '❌ TEST FAILURES: ') +
+        passed +
+        ' / ' +
+        total +
+        ' (' +
+        Math.round((passed / total) * 100) +
+        '%)';
+
+      const grid = document.getElementById('resultsGrid');
+      grid.innerHTML = results
+        .map(function (r) {
+          return (
+            '<div class="row ' +
+            (r.ok ? 'pass' : 'fail') +
+            '"><span>' +
+            (r.ok ? '✅ ' : '❌ ') +
+            r.name +
+            '</span><span style="color:#94a3b8;">' +
+            r.detail +
+            '</span></div>'
+          );
+        })
+        .join('');
+    })();
+  </script>
+</body>
+</html>
