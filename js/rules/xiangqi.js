@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-05
+// Version: v1.1.0
+// Changes: Repetition rule: 3-fold repetition draws, perpetual check loses (perpetual chase not implemented)
+// 修改: 新增重複局面規則：同局面 3 次判和，長將方判負（長捉細則未實作）
+// ============================================
 /**
  * Classic Board Arena — Xiangqi (中國象棋 9×10) Complete Rule Engine
  * Implements Palace bounds, Flying General (王不見王), Blocked Elephant Eye (塞象眼),
@@ -117,6 +123,8 @@
       turnNumber: state.turnNumber || 1,
       moveCount: state.moveCount || 0,
       halfMoveClock: state.halfMoveClock || 0,
+      // 自上次吃子以來的局面紀錄（每筆物件建立後不再修改，可共用）
+      repHistory: state.repHistory ? state.repHistory.slice() : [],
       lastMove: state.lastMove
         ? {
             id: state.lastMove.id,
@@ -169,9 +177,59 @@
       turnNumber: 1,
       moveCount: 0,
       halfMoveClock: 0,
+      repHistory: [{ key: positionKey(board, 1), check: false, mover: 0 }],
       lastMove: null,
       captured: { 1: [], 2: [] }
     };
+  }
+
+  const REPETITION_LIMIT = 3;
+
+  /** 局面鍵：棋盤 + 輪到哪方 */
+  function positionKey(board, sideToMove) {
+    let s = '';
+    for (let r = 0; r < ROWS; r++) {
+      const row = board[r];
+      for (let c = 0; c < COLS; c++) {
+        const cell = row[c];
+        s += cell ? (cell.owner === 1 ? cell.type : cell.type.toLowerCase()) : '.';
+      }
+    }
+    return s + sideToMove;
+  }
+
+  /**
+   * 重複局面裁決（簡化的亞洲規則）：同一局面第 3 次出現時，
+   * 循環中一方每步都將軍（長將）→ 該方判負；雙方都長將或都沒長將 → 和棋。
+   * 註：「長捉」細則未實作，一律以和棋處理。
+   * @param {Array<{key:string, check:boolean, mover:number}>} history 自上次吃子以來的紀錄（含最新一筆）
+   * @returns {{winner:number, endReason:string}|null} 未達重複次數時回傳 null
+   */
+  function adjudicateRepetition(history) {
+    const last = history[history.length - 1];
+    let count = 0;
+    let firstIdx = -1;
+    for (let i = 0; i < history.length; i++) {
+      if (history[i].key === last.key) {
+        count++;
+        if (firstIdx < 0) firstIdx = i;
+      }
+    }
+    if (count < REPETITION_LIMIT) return null;
+    const cycle = history.slice(firstIdx + 1);
+    function allChecks(player) {
+      const own = cycle.filter(function (h) {
+        return h.mover === player;
+      });
+      return own.length > 0 && own.every(function (h) {
+        return h.check;
+      });
+    }
+    const p1 = allChecks(1);
+    const p2 = allChecks(2);
+    if (p1 && !p2) return { winner: 2, endReason: 'perpetual_check' };
+    if (p2 && !p1) return { winner: 1, endReason: 'perpetual_check' };
+    return { winner: 0, endReason: 'repetition_draw' };
   }
 
   function findGeneral(board, player) {
@@ -651,6 +709,17 @@
       next.winner = mover;
       // In Xiangqi, stalemate (困斃) is a LOSS for the stalemated player!
       next.endReason = oppInCheck ? 'checkmate' : 'stalemate';
+      return next;
+    }
+
+    // 重複局面（長將判負／循環和棋）；吃子後局面不可能回復，紀錄歸零
+    if (capturedPiece) next.repHistory = [];
+    next.repHistory.push({ key: positionKey(next.board, opp), check: Boolean(oppInCheck), mover: mover });
+    const rep = adjudicateRepetition(next.repHistory);
+    if (rep) {
+      next.status = 'ended';
+      next.winner = rep.winner;
+      next.endReason = rep.endReason;
       return next;
     }
 

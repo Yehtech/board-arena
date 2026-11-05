@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-05
+// Version: v1.1.0
+// Changes: Enforce uchifuzume (pawn-drop checkmate is illegal); sennichite (4-fold repetition draw, perpetual check loses)
+// 修改: 新增「打步詰」禁手；新增千日手（同局面 4 次判和，連續王手方判負）
+// ============================================
 /**
  * Classic Board Arena — Shogi (日本將棋 9×9 + 駒台持駒打入) Complete Rule Engine
  * Implements exact 8-piece unpromoted/promoted movements, optional & mandatory Promotion (成り),
@@ -163,6 +169,8 @@
       inCheck: state.inCheck || 0,
       turnNumber: state.turnNumber || 1,
       moveCount: state.moveCount || 0,
+      // 千日手用的局面紀錄（不可變鏈結串列，複製時共用）
+      repTail: state.repTail || null,
       lastMove: state.lastMove
         ? {
             id: state.lastMove.id,
@@ -218,8 +226,67 @@
       inCheck: 0,
       turnNumber: 1,
       moveCount: 0,
+      repTail: { key: positionKey(board, { 1: createEmptyHand(), 2: createEmptyHand() }, 1), check: false, mover: 0, prev: null },
       lastMove: null
     };
+  }
+
+  const SENNICHITE_LIMIT = 4;
+
+  /** 局面鍵：盤面（含成駒）＋雙方持駒＋輪到哪方 */
+  function positionKey(board, hands, sideToMove) {
+    let s = '';
+    for (let r = 0; r < ROWS; r++) {
+      const row = board[r];
+      for (let c = 0; c < COLS; c++) {
+        const cell = row[c];
+        if (!cell) {
+          s += '.';
+        } else {
+          s += (cell.promoted ? '+' : '') + (cell.owner === 1 ? cell.type : cell.type.toLowerCase());
+        }
+      }
+    }
+    for (let p = 1; p <= 2; p++) {
+      s += '|';
+      const h = hands && hands[p];
+      for (let i = 0; i < HAND_ORDER.length; i++) s += (h && h[HAND_ORDER[i]]) || 0;
+    }
+    return s + '|' + sideToMove;
+  }
+
+  /**
+   * 千日手裁決：同一局面第 4 次出現時，循環中一方每步都王手 → 該方判負（連続王手の千日手），否則和棋。
+   * @param {Object} tail 最新一筆紀錄 {key, check, mover, prev}
+   * @returns {{winner:number, endReason:string}|null}
+   */
+  function adjudicateSennichite(tail) {
+    let count = 0;
+    for (let n = tail; n; n = n.prev) if (n.key === tail.key) count++;
+    if (count < SENNICHITE_LIMIT) return null;
+    // 取出第一次出現之後的循環（由新到舊收集）
+    const cycle = [];
+    let seen = 0;
+    for (let n = tail; n; n = n.prev) {
+      if (n.key === tail.key) {
+        seen++;
+        if (seen === count) break;
+      }
+      cycle.push(n);
+    }
+    function allChecks(player) {
+      const own = cycle.filter(function (h) {
+        return h.mover === player;
+      });
+      return own.length > 0 && own.every(function (h) {
+        return h.check;
+      });
+    }
+    const p1 = allChecks(1);
+    const p2 = allChecks(2);
+    if (p1 && !p2) return { winner: 2, endReason: 'perpetual_check_sennichite' };
+    if (p2 && !p1) return { winner: 1, endReason: 'perpetual_check_sennichite' };
+    return { winner: 0, endReason: 'sennichite' };
   }
 
   function findKing(board, player) {
@@ -578,7 +645,33 @@
     return false;
   }
 
-  function generateDropMovesForType(board, player, pieceType, currentlyInCheck, out) {
+  /**
+   * 打步詰（打ち歩詰め）判定：打入的步兵直接將軍，且對方沒有任何合法應手 → 此打入不合法。
+   * @param {Array} board 已放上步兵的棋盤（呼叫端負責放上與還原）
+   * @param {number} player 打入方
+   * @param {number} r 步兵所在列
+   * @param {number} c 步兵所在行
+   * @param {Object} oppHand 對方持駒
+   * @returns {boolean} true 表示構成打步詰
+   */
+  function isPawnDropMate(board, player, r, c, oppHand) {
+    const fwd = player === 1 ? -1 : 1;
+    const tr = r + fwd;
+    if (!inBounds(tr, c)) return false;
+    const target = board[tr][c];
+    const opp = opponentOf(player);
+    if (!target || target.owner !== opp || target.type !== 'K') return false;
+    const hands = {};
+    hands[opp] = oppHand || {};
+    hands[player] = {};
+    return !hasAnyLegalMove({ board: board, hands: hands }, opp);
+  }
+
+  /**
+   * 產生某種持駒的所有合法打入。
+   * @param {Object|null} oppHand 對方持駒；提供時才檢查打步詰（巢狀判定時傳 null 以免遞迴）
+   */
+  function generateDropMovesForType(board, player, pieceType, currentlyInCheck, out, oppHand) {
     const nifuBlockedCol = pieceType === 'P' ? new Array(COLS) : null;
     if (nifuBlockedCol) {
       for (let c = 0; c < COLS; c++) {
@@ -602,6 +695,13 @@
           const stillChecked = isInCheck(board, player);
           board[r][c] = null;
           if (stillChecked) continue;
+        }
+
+        if (pieceType === 'P' && oppHand) {
+          board[r][c] = tempPiece;
+          const dropMate = isPawnDropMate(board, player, r, c, oppHand);
+          board[r][c] = null;
+          if (dropMate) continue;
         }
 
         if (!out) return true;
@@ -636,7 +736,8 @@
       for (let i = 0; i < HAND_ORDER.length; i++) {
         const t = HAND_ORDER[i];
         if (hand[t] > 0) {
-          if (generateDropMovesForType(board, player, t, inChk, null)) return true;
+          // 傳入對方持駒以排除打步詰；巢狀判定時該方必在被將軍狀態，打入會先被「無法解將」過濾，不會無限遞迴
+          if (generateDropMovesForType(board, player, t, inChk, null, (state.hands && state.hands[opponentOf(player)]) || {})) return true;
         }
       }
     }
@@ -664,7 +765,7 @@
       for (let i = 0; i < HAND_ORDER.length; i++) {
         const t = HAND_ORDER[i];
         if (hand[t] > 0) {
-          generateDropMovesForType(board, p, t, inChk, moves);
+          generateDropMovesForType(board, p, t, inChk, moves, (state.hands && state.hands[opponentOf(p)]) || {});
         }
       }
     }
@@ -682,7 +783,7 @@
       if (count <= 0) return [];
       const drops = [];
       const inChk = isInCheck(state.board, p);
-      generateDropMovesForType(state.board, p, source.piece, inChk, drops);
+      generateDropMovesForType(state.board, p, source.piece, inChk, drops, (state.hands && state.hands[opponentOf(p)]) || {});
       return drops;
     }
 
@@ -944,6 +1045,20 @@
       next.status = 'ended';
       next.winner = mover;
       next.endReason = 'checkmate';
+      return next;
+    }
+
+    next.repTail = {
+      key: positionKey(next.board, next.hands, opp),
+      check: Boolean(oppInCheck),
+      mover: mover,
+      prev: state.repTail || null
+    };
+    const rep = adjudicateSennichite(next.repTail);
+    if (rep) {
+      next.status = 'ended';
+      next.winner = rep.winner;
+      next.endReason = rep.endReason;
     }
 
     return next;

@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.4.0
+// Changes: Pass match history to the engine bridge; human-readable end-reason labels in the result dialog
+// 修改: 將對局歷史傳給引擎；結算畫面改顯示中英文結束原因（原本顯示程式代碼）
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.3.0
 // Changes: Pre-load Fairy-Stockfish for engine-backed matches and label the bot name
 // 修改: 使用 Fairy-Stockfish 的對局於開局時預先載入引擎，並在電腦名稱標示引擎
@@ -1087,6 +1093,13 @@
       if (curMatch.gameState.currentPlayer === curMatch.humanSide) return;
 
       const snapshotSeq = curMatch.moveHistory.length;
+      // 提供對局歷史給引擎（長將／千日手判斷用）；fsf-bridge 會先確認歷史與目前局面一致
+      BoardArena.AI.matchHistory = {
+        states: curMatch.stateHistory,
+        moves: curMatch.moveHistory.map(function (h) {
+          return h.move;
+        })
+      };
       if (typeof BoardArena.AI.chooseMoveAsync === 'function') {
         BoardArena.AI.chooseMoveAsync(curMatch.gameId, curMatch.gameState, curMatch.aiLevel, function (aiMove) {
           const liveMatch = stateStore.match;
@@ -2493,6 +2506,38 @@
     launchAuthenticatedPvpMatch('pvp_local', name, 1560, null);
   }
 
+  /** 結束原因代碼 → 顯示文字 */
+  const END_REASON_LABELS = {
+    checkmate: { zh: '將死', en: 'Checkmate' },
+    stalemate: { zh: '無子可動（困斃／逼和）', en: 'Stalemate' },
+    timeout: { zh: '超時', en: 'Time out' },
+    resign: { zh: '認輸', en: 'Resignation' },
+    draw_agreed: { zh: '同意和棋', en: 'Draw agreed' },
+    threefold_repetition: { zh: '三次重複局面', en: 'Threefold repetition' },
+    repetition_draw: { zh: '重複局面判和', en: 'Repetition draw' },
+    perpetual_check: { zh: '長將判負', en: 'Perpetual check (loss)' },
+    sennichite: { zh: '千日手', en: 'Sennichite (repetition)' },
+    perpetual_check_sennichite: { zh: '連續王手千日手（王手方判負）', en: 'Perpetual-check sennichite (loss)' },
+    insufficient_material: { zh: '子力不足', en: 'Insufficient material' },
+    fifty_move_draw: { zh: '多步未吃子判和', en: 'Move-limit draw' },
+    fifty_move_rule: { zh: '50 步規則', en: '50-move rule' },
+    draw_120_ply: { zh: '60 回合未吃子判和', en: '60-move no-capture draw' },
+    elimination_or_blockade: { zh: '對方無子可走', en: 'Opponent has no moves' },
+    five_in_row: { zh: '五子連線', en: 'Five in a row' },
+    full_board: { zh: '棋盤下滿', en: 'Board full' },
+    disc_count: { zh: '終局數子', en: 'Disc count' },
+    area_score: { zh: '數子計分', en: 'Area scoring' },
+    bear_off_complete: { zh: '全部收子', en: 'All checkers borne off' },
+    gammon: { zh: '雙勝（Gammon）', en: 'Gammon' },
+    backgammon: { zh: '三勝（Backgammon）', en: 'Backgammon' }
+  };
+
+  function endReasonLabel(code) {
+    const item = END_REASON_LABELS[code];
+    if (!item) return code || '';
+    return isEn() ? item.en : item.zh;
+  }
+
   function openMatchResultModal(winner, endReason, ratingDeltaInfo) {
     closeDynamicModal();
     const m = stateStore.match;
@@ -2544,8 +2589,9 @@
       '<h3 style="color:var(--accent-gold-bright);">🎉 ' +
       escapeHtml(title) +
       '</h3>' +
-      '<div style="font-size:13px;color:var(--text-secondary);">結算原因：' +
-      escapeHtml(endReason) +
+      '<div style="font-size:13px;color:var(--text-secondary);">' +
+      (isEn() ? 'Result: ' : '結算原因：') +
+      escapeHtml(endReasonLabel(endReason)) +
       '</div>' +
       goScoreHtml +
       ratingHtml +

@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.1.0
+// Changes: Send move history (position fen ... moves ...) so the engine sees repetitions (perpetual check / sennichite)
+// 修改: 傳入棋步歷史給引擎，讓引擎能判斷長將與千日手
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.0.0
 // Changes: In-browser Fairy-Stockfish (WASM) bridge for chess / xiangqi / shogi Hard & Master levels, with JS AI fallback
 // 修改: 新增瀏覽器內 Fairy-Stockfish（WASM）串接，西洋棋／象棋／將棋的困難與大師難度改由引擎下棋，失敗時自動退回 JS AI
@@ -176,6 +182,56 @@
     };
   }
 
+  /**
+   * 走法物件 → 引擎走法字串（parseEngineMove 的反函式）。
+   * @returns {string|null}
+   */
+  function moveToEngine(gameId, move) {
+    const rows = gameId === 'xiangqi' ? 10 : gameId === 'shogi' ? 9 : 8;
+    if (!move || !move.to) return null;
+    const sq = function (p) {
+      return String.fromCharCode(97 + p.c) + (rows - p.r);
+    };
+    if (move.isDrop) return move.piece + '@' + sq(move.to);
+    if (!move.from || typeof move.from.r !== 'number') return null;
+    let s = sq(move.from) + sq(move.to);
+    if (gameId === 'chess' && move.promote) s += String(move.promote).toLowerCase();
+    if (gameId === 'shogi' && move.promote) s += '+';
+    return s;
+  }
+
+  /** 傳給引擎的最多歷史步數（足以涵蓋長將／千日手循環） */
+  const HISTORY_PLIES = 120;
+
+  /**
+   * 組出 UCI position 指令：有對局歷史時用「起始局面 + 棋步」，讓引擎知道重複局面（長將、千日手）；
+   * 歷史與目前局面對不上時，退回只傳目前局面。
+   * @param {string} gameId 棋種
+   * @param {Object} state 目前局面
+   * @param {{states: Array, moves: Array}|null} history 對局歷史（states 比 moves 多 1 筆）
+   * @returns {string}
+   */
+  function buildPositionCommand(gameId, state, history) {
+    const fenNow = buildFen(gameId, state);
+    if (
+      history &&
+      Array.isArray(history.states) &&
+      Array.isArray(history.moves) &&
+      history.moves.length > 0 &&
+      history.states.length === history.moves.length + 1 &&
+      buildFen(gameId, history.states[history.states.length - 1]) === fenNow
+    ) {
+      const start = Math.max(0, history.moves.length - HISTORY_PLIES);
+      const ucis = history.moves.slice(start).map(function (m) {
+        return moveToEngine(gameId, m);
+      });
+      if (ucis.every(Boolean)) {
+        return 'position fen ' + buildFen(gameId, history.states[start]) + ' moves ' + ucis.join(' ');
+      }
+    }
+    return 'position fen ' + fenNow;
+  }
+
   function sameSquare(a, b) {
     return Boolean(a && b && a.r === b.r && a.c === b.c);
   }
@@ -321,7 +377,7 @@
    * 送出一次搜尋並等待 bestmove。
    * @returns {Promise<{raw: string, info: Object}>}
    */
-  function runSearch(variant, fen, settings) {
+  function runSearch(variant, positionCmd, settings) {
     const info = { depth: 0, nodes: 0, score: 0 };
     const infoListener = function (line) {
       const d = /\bdepth (\d+)/.exec(line);
@@ -356,7 +412,7 @@
         const best = waitForLine(function (l) {
           return l.indexOf('bestmove') === 0;
         }, settings.movetimeMs + SEARCH_GRACE_MS);
-        send('position fen ' + fen);
+        send(positionCmd);
         send('go movetime ' + settings.movetimeMs);
         return best;
       })
@@ -393,10 +449,12 @@
     if (!fen || !rule) return Promise.resolve(null);
     const settings = LEVEL_SETTINGS[levelKey];
     const started = Date.now();
+    const AI = BoardArena.AI;
+    const positionCmd = buildPositionCommand(gameId, state, AI && AI.matchHistory);
 
     const job = searchQueue.then(function () {
       return loadEngine().then(function () {
-        return runSearch(ENGINE_VARIANTS[gameId], fen, settings);
+        return runSearch(ENGINE_VARIANTS[gameId], positionCmd, settings);
       });
     });
     // 佇列不因單次失敗而中斷
@@ -489,6 +547,8 @@
 
   BoardArena.FSF = {
     buildFen: buildFen,
+    buildPositionCommand: buildPositionCommand,
+    moveToEngine: moveToEngine,
     parseEngineMove: parseEngineMove,
     matchLegalMove: matchLegalMove,
     isSupportedEnvironment: isSupportedEnvironment,

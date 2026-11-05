@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-05
+// Version: v1.1.0
+// Changes: FMJD majority-capture rule; jumped pieces stay on board until the sequence ends (no double jumping)
+// 修改: 加入 FMJD「最多吃子」規則；連跳中被吃的子保留到整串結束才移除，不可重複跳過
+// ============================================
 /**
  * Classic Board Arena — International Draughts (10×10 FMJD Polish Checkers) Rule Engine
  * Features:
@@ -78,6 +84,7 @@
       turnNumber: 1,
       moveCount: 0,
       mustContinueFrom: null,
+      pendingCaptures: [],
       capturedCount: { 1: 0, 2: 0 },
       quietMoves: 0,
       status: 'playing',
@@ -109,6 +116,9 @@
       mustContinueFrom: state.mustContinueFrom
         ? { r: state.mustContinueFrom.r, c: state.mustContinueFrom.c }
         : null,
+      pendingCaptures: (state.pendingCaptures || []).map(function (p) {
+        return { r: p.r, c: p.c };
+      }),
       capturedCount: {
         1: (state.capturedCount && state.capturedCount[1]) || 0,
         2: (state.capturedCount && state.capturedCount[2]) || 0
@@ -121,10 +131,69 @@
     };
   }
 
+  function isPending(pending, r, c) {
+    if (!pending) return false;
+    for (let i = 0; i < pending.length; i++) {
+      if (pending[i].r === r && pending[i].c === c) return true;
+    }
+    return false;
+  }
+
+  /**
+   * 從目前位置往下最多還能連吃幾子（FMJD：被吃的子在整串連跳結束前仍留在盤上、不可重複跳過）。
+   * @param {Array} board 棋盤（會暫時修改後還原）
+   * @param {number} r 跳子目前列
+   * @param {number} c 跳子目前行
+   * @param {Array<{r:number,c:number}>} pending 本回合已跳過、尚未移除的敵子
+   * @returns {number} 可再吃的最大子數
+   */
+  function maxFurtherCaptures(board, r, c, pending) {
+    const piece = board[r][c];
+    const jumps = getCapturesFromSquare(board, r, c, pending);
+    let best = 0;
+    for (let i = 0; i < jumps.length; i++) {
+      const j = jumps[i];
+      board[r][c] = null;
+      board[j.to.r][j.to.c] = piece;
+      pending.push(j.captures[0]);
+      const total = 1 + maxFurtherCaptures(board, j.to.r, j.to.c, pending);
+      pending.pop();
+      board[j.to.r][j.to.c] = null;
+      board[r][c] = piece;
+      if (total > best) best = total;
+    }
+    return best;
+  }
+
+  /**
+   * 為每個單跳計算「走這一跳後整串最多可吃幾子」，只保留達到最大值者（最多吃子規則）。
+   * @returns {Array} 符合最多吃子規則的單跳
+   */
+  function filterMajorityJumps(board, jumps, pending) {
+    let best = 0;
+    const scored = [];
+    for (let i = 0; i < jumps.length; i++) {
+      const j = jumps[i];
+      const piece = board[j.from.r][j.from.c];
+      board[j.from.r][j.from.c] = null;
+      board[j.to.r][j.to.c] = piece;
+      const nextPending = pending.concat([j.captures[0]]);
+      const total = 1 + maxFurtherCaptures(board, j.to.r, j.to.c, nextPending);
+      board[j.to.r][j.to.c] = null;
+      board[j.from.r][j.from.c] = piece;
+      scored.push(total);
+      if (total > best) best = total;
+    }
+    return jumps.filter(function (_, i) {
+      return scored[i] === best;
+    });
+  }
+
   /**
    * Generate single-jump captures from (r, c) for the piece at board[r][c].
+   * @param {Array<{r:number,c:number}>} [pending] 本回合已跳過的敵子：仍佔據格子、不可再被跳
    */
-  function getCapturesFromSquare(board, r, c) {
+  function getCapturesFromSquare(board, r, c, pending) {
     const piece = board[r][c];
     if (!piece) return [];
     const owner = piece.owner;
@@ -142,7 +211,7 @@
         const tc = c + 2 * dc;
         if (!inBounds(tr, tc)) continue;
         const mid = board[mr][mc];
-        if (mid && mid.owner === opp && !board[tr][tc]) {
+        if (mid && mid.owner === opp && !isPending(pending, mr, mc) && !board[tr][tc]) {
           const fromN = sqNum(r, c);
           const toN = sqNum(tr, tc);
           captures.push({
@@ -168,7 +237,7 @@
         }
         if (!inBounds(sr, sc)) continue;
         const enemy = board[sr][sc];
-        if (!enemy || enemy.owner !== opp) continue;
+        if (!enemy || enemy.owner !== opp || isPending(pending, sr, sc)) continue;
 
         let lr = sr + dr;
         let lc = sc + dc;
@@ -253,13 +322,14 @@
     if (p !== state.currentPlayer) return [];
 
     // If in the middle of a multi-jump chain, only that jumping piece may continue capturing
+    const pending = state.pendingCaptures || [];
     if (state.mustContinueFrom) {
       const mr = state.mustContinueFrom.r;
       const mc = state.mustContinueFrom.c;
       const cell = state.board[mr] && state.board[mr][mc];
       if (cell && cell.owner === p) {
-        const chainCaps = getCapturesFromSquare(state.board, mr, mc);
-        if (chainCaps.length > 0) return chainCaps;
+        const chainCaps = getCapturesFromSquare(state.board, mr, mc, pending);
+        if (chainCaps.length > 0) return filterMajorityJumps(state.board, chainCaps, pending);
       }
     }
 
@@ -269,7 +339,7 @@
       for (let c = 0; c < COLS; c++) {
         const cell = state.board[r][c];
         if (!cell || cell.owner !== p) continue;
-        const caps = getCapturesFromSquare(state.board, r, c);
+        const caps = getCapturesFromSquare(state.board, r, c, pending);
         for (let i = 0; i < caps.length; i++) {
           allCaptures.push(caps[i]);
         }
@@ -277,7 +347,8 @@
     }
 
     if (allCaptures.length > 0) {
-      return allCaptures;
+      // FMJD 最多吃子規則：只能選擇吃子數最多的連跳路線
+      return filterMajorityJumps(state.board, allCaptures, pending);
     }
 
     // Otherwise collect normal diagonal moves
@@ -409,20 +480,15 @@
     };
     next.board[fr][fc] = null;
 
+    // FMJD：被吃的子在整串連跳結束前仍留在盤上（不可重複跳過），結束時才一併移除
     if (move.isCapture && Array.isArray(move.captures)) {
-      for (let i = 0; i < move.captures.length; i++) {
-        const cap = move.captures[i];
-        if (next.board[cap.r][cap.c]) {
-          next.board[cap.r][cap.c] = null;
-          next.capturedCount[mover] = (next.capturedCount[mover] || 0) + 1;
-        }
-      }
+      next.pendingCaptures = next.pendingCaptures.concat(move.captures);
     }
 
     // Check if multi-jump continuation is available from (tr, tc)
     let canContinueJump = false;
     if (move.isCapture) {
-      const followUpCaps = getCapturesFromSquare(next.board, tr, tc);
+      const followUpCaps = getCapturesFromSquare(next.board, tr, tc, next.pendingCaptures);
       if (followUpCaps.length > 0) {
         canContinueJump = true;
       }
@@ -434,6 +500,14 @@
       // Same player continues jumping!
     } else {
       next.mustContinueFrom = null;
+      for (let i = 0; i < next.pendingCaptures.length; i++) {
+        const cap = next.pendingCaptures[i];
+        if (next.board[cap.r][cap.c]) {
+          next.board[cap.r][cap.c] = null;
+          next.capturedCount[mover] = (next.capturedCount[mover] || 0) + 1;
+        }
+      }
+      next.pendingCaptures = [];
       // Promotion to Flying King at the end of the turn on the far row
       const promoRow = mover === 1 ? 0 : ROWS - 1;
       if (!next.board[tr][tc].king && tr === promoRow) {
