@@ -113,10 +113,10 @@
   ];
 
   BoardArena.AI_LEVELS = [
-    { id: 'easy', zh: '簡單', en: 'Easy', badgeRating: 1100 },
-    { id: 'normal', zh: '普通', en: 'Normal', badgeRating: 1450 },
-    { id: 'hard', zh: '困難', en: 'Hard', badgeRating: 1750 },
-    { id: 'master', zh: '大師', en: 'Master', badgeRating: 2050 }
+    { id: 'easy', zh: '簡單', en: 'Easy', badgeRating: 1350, descZh: '穩健初段（識破連珠與基礎戰術）', descEn: 'Club Novice (Tactical Floor)' },
+    { id: 'normal', zh: '普通', en: 'Normal', badgeRating: 1650, descZh: '中堅棋士（雙活三／吃子延伸搜尋）', descEn: 'Club Tactical (3-Ply + Quiescence)' },
+    { id: 'hard', zh: '困難', en: 'Hard', badgeRating: 1950, descZh: '高段名手（開局庫＋VCF算殺＋深層讀秒）', descEn: 'Expert (Opening Book + VCF + Deep Search)' },
+    { id: 'master', zh: '大師', en: 'Master', badgeRating: 2250, descZh: '宗師引擎（PVS迭代加深＋10層算殺＋終局解算）', descEn: 'Grandmaster (PVS + 10-Ply VCF + Endgame Solver)' }
   ];
 
   /**

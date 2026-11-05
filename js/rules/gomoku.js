@@ -99,66 +99,197 @@
     };
   }
 
-  // Quick local run-length check at empty (r, c) for tactical move ordering
-  function quickPointTacticalScore(board, r, c, player, opp) {
-    let bonus = 0;
+  function inBounds(r, c) {
+    return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+  }
+
+  /**
+   * High-speed 4-Axis Gomoku/Renju Pattern Classifier at empty point (r, c) for `player`.
+   * Classifies what shapes placing a stone of `player` at (r, c) creates across all 4 axes:
+   *   - fives:      5+ contiguous stones (Immediate Victory)
+   *   - liveFours:  .XXXX. (4 stones with 2 open ends, or double-gap 4 on same line)
+   *   - rushFours:  OXXXX. or XXX.X or XX.XX (1 empty completion square to make 5)
+   *   - liveThrees: .XXX. (with >=6 corridor) or .XX.X. / .X.XX. (broken open three)
+   *   - sleepThrees: OXXX.. or OXX.X. (blocked on one side, can still make Rush Four)
+   *   - liveTwos:   ..XX.. or .X.X. (open two with development room)
+   *   - sleepTwos:  OXX...
+   */
+  function analyzePointFourAxes(board, r, c, player) {
+    let fives = 0;
+    let liveFours = 0;
+    let rushFours = 0;
+    let liveThrees = 0;
+    let sleepThrees = 0;
+    let liveTwos = 0;
+    let sleepTwos = 0;
+
     for (let a = 0; a < 4; a++) {
       const dr = AXES[a][0];
       const dc = AXES[a][1];
 
-      // Friendly contiguous chain through (r, c)
-      let myLen = 1;
-      let openEnds = 0;
+      // Check maximum unblocked corridor (up to 4 cells in each direction not occupied by opponent)
+      let room1 = 0;
+      let tr = r + dr;
+      let tc = c + dc;
+      while (room1 < 4 && inBounds(tr, tc) && (board[tr][tc] === 0 || board[tr][tc] === player)) {
+        room1++;
+        tr += dr;
+        tc += dc;
+      }
+      let room2 = 0;
+      tr = r - dr;
+      tc = c - dc;
+      while (room2 < 4 && inBounds(tr, tc) && (board[tr][tc] === 0 || board[tr][tc] === player)) {
+        room2++;
+        tr -= dr;
+        tc -= dc;
+      }
+      if (1 + room1 + room2 < 5) continue;
+
+      // Positive direction (+dr, +dc)
+      let c1 = 0;
       let nr = r + dr;
       let nc = c + dc;
-      while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === player) {
-        myLen++;
+      while (inBounds(nr, nc) && board[nr][nc] === player) {
+        c1++;
         nr += dr;
         nc += dc;
       }
-      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === 0) openEnds++;
+      let open1 = false;
+      let ext1 = 0;
+      let open1Far = false;
+      if (inBounds(nr, nc) && board[nr][nc] === 0) {
+        open1 = true;
+        let er = nr + dr;
+        let ec = nc + dc;
+        while (inBounds(er, ec) && board[er][ec] === player) {
+          ext1++;
+          er += dr;
+          ec += dc;
+        }
+        if (inBounds(er, ec) && board[er][ec] === 0) {
+          open1Far = true;
+        }
+      }
 
+      // Negative direction (-dr, -dc)
+      let c2 = 0;
       nr = r - dr;
       nc = c - dc;
-      while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === player) {
-        myLen++;
+      while (inBounds(nr, nc) && board[nr][nc] === player) {
+        c2++;
         nr -= dr;
         nc -= dc;
       }
-      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === 0) openEnds++;
-
-      if (myLen >= 5) bonus += 100000;
-      else if (myLen === 4) bonus += openEnds === 2 ? 20000 : openEnds === 1 ? 4500 : 0;
-      else if (myLen === 3 && openEnds === 2) bonus += 2200;
-      else if (myLen === 2 && openEnds === 2) bonus += 160;
-
-      // Opponent contiguous chain blocked at (r, c)
-      let oppLen = 1;
-      let oppOpen = 0;
-      nr = r + dr;
-      nc = c + dc;
-      while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === opp) {
-        oppLen++;
-        nr += dr;
-        nc += dc;
+      let open2 = false;
+      let ext2 = 0;
+      let open2Far = false;
+      if (inBounds(nr, nc) && board[nr][nc] === 0) {
+        open2 = true;
+        let er = nr - dr;
+        let ec = nc - dc;
+        while (inBounds(er, ec) && board[er][ec] === player) {
+          ext2++;
+          er -= dr;
+          ec -= dc;
+        }
+        if (inBounds(er, ec) && board[er][ec] === 0) {
+          open2Far = true;
+        }
       }
-      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === 0) oppOpen++;
 
-      nr = r - dr;
-      nc = c - dc;
-      while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === opp) {
-        oppLen++;
-        nr -= dr;
-        nc -= dc;
+      const contig = 1 + c1 + c2;
+      const total1 = open1 ? contig + ext1 : contig;
+      const total2 = open2 ? contig + ext2 : contig;
+
+      if (contig >= 5) {
+        fives++;
+      } else if (contig === 4) {
+        if (open1 && open2) liveFours++;
+        else if (open1 || open2) rushFours++;
+      } else if (total1 >= 4 || total2 >= 4) {
+        if (total1 >= 4 && total2 >= 4) liveFours++;
+        else rushFours++;
+      } else if (contig === 3) {
+        if (open1 && open2) {
+          if (open1Far || open2Far || ext1 > 0 || ext2 > 0) liveThrees++;
+          else sleepThrees++;
+        } else if (open1 || open2) {
+          sleepThrees++;
+        }
+      } else if (total1 === 3 || total2 === 3) {
+        if ((total1 === 3 && open1 && open2 && open1Far) || (total2 === 3 && open2 && open1 && open2Far)) {
+          liveThrees++;
+        } else {
+          sleepThrees++;
+        }
+      } else if (contig === 2) {
+        if (open1 && open2 && (open1Far || open2Far)) liveTwos++;
+        else if (open1 || open2) sleepTwos++;
+      } else if ((total1 === 2 && open1 && open2 && open1Far) || (total2 === 2 && open2 && open1 && open2Far)) {
+        liveTwos++;
       }
-      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === 0) oppOpen++;
-
-      if (oppLen >= 5) bonus += 80000;
-      else if (oppLen === 4) bonus += oppOpen === 2 ? 16000 : oppOpen === 1 ? 3800 : 0;
-      else if (oppLen === 3 && oppOpen === 2) bonus += 1900;
-      else if (oppLen === 2 && oppOpen === 2) bonus += 120;
     }
-    return bonus;
+
+    return {
+      fives: fives,
+      liveFours: liveFours,
+      rushFours: rushFours,
+      liveThrees: liveThrees,
+      sleepThrees: sleepThrees,
+      liveTwos: liveTwos,
+      sleepTwos: sleepTwos,
+      five: fives,
+      openFour: liveFours,
+      halfFour: rushFours,
+      openThree: liveThrees,
+      openTwo: liveTwos
+    };
+  }
+
+  function hasNearbyStone(board, r, c, radius) {
+    const rad = radius || 2;
+    const rMin = r > rad ? r - rad : 0;
+    const rMax = r + rad < SIZE ? r + rad : SIZE - 1;
+    const cMin = c > rad ? c - rad : 0;
+    const cMax = c + rad < SIZE ? c + rad : SIZE - 1;
+    for (let nr = rMin; nr <= rMax; nr++) {
+      const row = board[nr];
+      for (let nc = cMin; nc <= cMax; nc++) {
+        if (row[nc] !== 0) return true;
+      }
+    }
+    return false;
+  }
+
+  function scorePointThreatObj(t, isAttack) {
+    if (t.fives >= 1) return isAttack ? 1000000 : 900000;
+    if (t.liveFours >= 1 || t.rushFours >= 2) return isAttack ? 450000 : 380000;
+    if (t.rushFours >= 1 && t.liveThrees >= 1) return isAttack ? 320000 : 280000;
+    if (t.liveThrees >= 2) return isAttack ? 180000 : 160000;
+
+    let s = 0;
+    if (t.rushFours === 1) {
+      s += (isAttack ? 18000 : 15000) + t.sleepThrees * 4500 + t.liveTwos * 3200;
+    }
+    if (t.liveThrees === 1) {
+      s += (isAttack ? 15000 : 13500) + t.sleepThrees * 3500 + t.liveTwos * 2800;
+    }
+    if (t.liveTwos >= 2) {
+      s += (isAttack ? 5200 : 4600) + (t.liveTwos - 2) * 1800;
+    } else if (t.liveTwos === 1) {
+      s += (isAttack ? 950 : 820) + t.sleepThrees * 900;
+    }
+    s += t.sleepThrees * (isAttack ? 780 : 650) + t.sleepTwos * 95;
+    return s;
+  }
+
+  // Quick local run-length & fork check at empty (r, c) for tactical move ordering
+  function quickPointTacticalScore(board, r, c, player, opp) {
+    const enemy = opp || (player === 1 ? 2 : 1);
+    const myT = analyzePointFourAxes(board, r, c, player);
+    const opT = analyzePointFourAxes(board, r, c, enemy);
+    return scorePointThreatObj(myT, true) + scorePointThreatObj(opT, false);
   }
 
   function getLegalMoves(state, player) {
@@ -372,8 +503,8 @@
     return next;
   }
 
-  // Score one directional ray starting at (sr, sc) with step (dr, dc), updating scores[1] and scores[2]
-  function scoreLinePatterns(board, sr, sc, dr, dc, scores) {
+  // Score one directional ray starting at (sr, sc) with step (dr, dc), updating scores[1] and scores[2] and threats[1]/[2]
+  function scoreLinePatterns(board, sr, sc, dr, dc, scores, threats) {
     // Walk line cells by index k = 0 .. len-1
     let len = 0;
     let tr = sr;
@@ -401,7 +532,8 @@
       const runLen = j - i + 1;
 
       if (runLen >= 5) {
-        scores[cell] += 100000;
+        scores[cell] += 200000;
+        threats[cell].five++;
         i = j + 1;
         continue;
       }
@@ -442,14 +574,17 @@
             j + 2 + r2 < len && board[sr + (j + 2 + r2) * dr][sc + (j + 2 + r2) * dc] === 0;
           if (combined >= 4) {
             // Broken four (XXX.X, X.XXX, XX.XX): immediate 1-move threat to make 5
-            scores[cell] += 3200;
+            scores[cell] += 5200;
+            threats[cell].halfFour++;
             splitHandled = true;
           } else if (combined === 3) {
             if (openLeft && farRightOpen) {
-              scores[cell] += 1500;
+              scores[cell] += 3600;
+              threats[cell].openThree++;
               splitHandled = true;
             } else if (openLeft || farRightOpen) {
-              scores[cell] += 320;
+              scores[cell] += 420;
+              threats[cell].sleepThree++;
               splitHandled = true;
             }
           }
@@ -457,14 +592,35 @@
 
         if (!splitHandled) {
           if (runLen === 4) {
-            if (openEnds === 2) scores[cell] += 15000;
-            else if (openEnds === 1) scores[cell] += 3200;
+            if (openEnds === 2) {
+              scores[cell] += 45000;
+              threats[cell].openFour++;
+            } else if (openEnds === 1) {
+              scores[cell] += 5500;
+              threats[cell].halfFour++;
+            }
           } else if (runLen === 3) {
-            if (openEnds === 2) scores[cell] += 1800;
-            else if (openEnds === 1) scores[cell] += 350;
+            if (openEnds === 2) {
+              const leftOpen2 = i >= 2 && board[sr + (i - 2) * dr][sc + (i - 2) * dc] === 0;
+              const rightOpen2 = j + 2 < len && board[sr + (j + 2) * dr][sc + (j + 2) * dc] === 0;
+              if (leftOpen2 || rightOpen2) {
+                scores[cell] += 4200;
+                threats[cell].openThree++;
+              } else {
+                scores[cell] += 650;
+                threats[cell].sleepThree++;
+              }
+            } else if (openEnds === 1) {
+              scores[cell] += 450;
+              threats[cell].sleepThree++;
+            }
           } else if (runLen === 2) {
-            if (openEnds === 2) scores[cell] += 90;
-            else if (openEnds === 1) scores[cell] += 18;
+            if (openEnds === 2) {
+              scores[cell] += 260;
+              threats[cell].openTwo++;
+            } else if (openEnds === 1) {
+              scores[cell] += 35;
+            }
           }
         }
       }
@@ -485,6 +641,10 @@
 
     const board = state.board;
     const scores = { 1: 0, 2: 0 };
+    const threats = {
+      1: { five: 0, openFour: 0, halfFour: 0, openThree: 0, sleepThree: 0, openTwo: 0 },
+      2: { five: 0, openFour: 0, halfFour: 0, openThree: 0, sleepThree: 0, openTwo: 0 }
+    };
 
     // Small center-control tie-breaker
     for (let r = 0; r < SIZE; r++) {
@@ -499,31 +659,106 @@
 
     // 1. Horizontal lines (dr=0, dc=1)
     for (let r = 0; r < SIZE; r++) {
-      scoreLinePatterns(board, r, 0, 0, 1, scores);
+      scoreLinePatterns(board, r, 0, 0, 1, scores, threats);
     }
     // 2. Vertical lines (dr=1, dc=0)
     for (let c = 0; c < SIZE; c++) {
-      scoreLinePatterns(board, 0, c, 1, 0, scores);
+      scoreLinePatterns(board, 0, c, 1, 0, scores, threats);
     }
     // 3. Main diagonals (dr=1, dc=1)
     for (let c = 0; c <= SIZE - 5; c++) {
-      scoreLinePatterns(board, 0, c, 1, 1, scores);
+      scoreLinePatterns(board, 0, c, 1, 1, scores, threats);
     }
     for (let r = 1; r <= SIZE - 5; r++) {
-      scoreLinePatterns(board, r, 0, 1, 1, scores);
+      scoreLinePatterns(board, r, 0, 1, 1, scores, threats);
     }
     // 4. Anti-diagonals (dr=1, dc=-1)
     for (let c = 4; c < SIZE; c++) {
-      scoreLinePatterns(board, 0, c, 1, -1, scores);
+      scoreLinePatterns(board, 0, c, 1, -1, scores, threats);
     }
     for (let r = 1; r <= SIZE - 5; r++) {
-      scoreLinePatterns(board, r, SIZE - 1, 1, -1, scores);
+      scoreLinePatterns(board, r, SIZE - 1, 1, -1, scores, threats);
     }
 
-    if (scores[me] >= 100000) return 100000;
-    if (scores[opp] >= 100000) return -100000;
+    if (threats[me].five > 0 || scores[me] >= 180000) return 100000;
+    if (threats[opp].five > 0 || scores[opp] >= 180000) return -100000;
 
-    return Math.round(scores[me] - scores[opp] * 1.15);
+    // Turn-aware lethal tactical patterns
+    const toMove = state.currentPlayer;
+    for (let p = 1; p <= 2; p++) {
+      const t = threats[p];
+      const other = threats[p === 1 ? 2 : 1];
+      if (p === toMove) {
+        // Side to move has a four -> wins immediately on this turn!
+        if (t.openFour > 0 || t.halfFour > 0) {
+          scores[p] += 88000;
+        } else if (t.openThree > 0 && other.openFour === 0 && other.halfFour === 0) {
+          // Side to move has an open three and opponent has no four -> creates unstoppable open four!
+          scores[p] += 36000 + (t.openThree - 1) * 10000;
+        }
+      } else {
+        // Side NOT to move still has unblocked lethal threats
+        if (t.openFour > 0 && other.openFour === 0 && other.halfFour === 0) {
+          scores[p] += 68000;
+        } else if (t.halfFour >= 2 && other.openFour === 0 && other.halfFour === 0) {
+          scores[p] += 55000;
+        } else if (t.halfFour >= 1 && t.openThree >= 1 && other.openFour === 0 && other.halfFour === 0) {
+          scores[p] += 42000;
+        } else if (t.openThree >= 2 && other.openFour === 0 && other.halfFour === 0) {
+          scores[p] += 28000;
+        }
+      }
+    }
+
+    const diff = scores[me] - scores[opp] * 1.12;
+    if (diff > 99000) return 99000;
+    if (diff < -99000) return -99000;
+    return Math.round(diff);
+  }
+
+  function getCandidateMoves(state, player, maxBranch) {
+    if (!state || state.status === 'ended') return [];
+    const p = player || state.currentPlayer;
+    if (state.swapOffered && p === 2) {
+      return getLegalMoves(state, p);
+    }
+    const board = state.board;
+    if (state.stoneCount === 0) {
+      return [
+        {
+          id: 'r7c7',
+          action: null,
+          from: null,
+          to: { r: 7, c: 7 },
+          isCapture: false,
+          notation: 'H8',
+          priority: 1000
+        }
+      ];
+    }
+
+    const candidates = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (board[r][c] !== 0) continue;
+        if (!hasNearbyStone(board, r, c, 2)) continue;
+        const prio = quickPointTacticalScore(board, r, c, p);
+        candidates.push({
+          id: 'r' + r + 'c' + c,
+          action: null,
+          from: null,
+          to: { r: r, c: c },
+          isCapture: false,
+          notation: COL_LABELS[c] + (SIZE - r),
+          priority: prio
+        });
+      }
+    }
+    candidates.sort(function (a, b) {
+      return b.priority - a.priority;
+    });
+    const limit = maxBranch || 18;
+    return candidates.length > limit ? candidates.slice(0, limit) : candidates;
   }
 
   function canSelectSource(state, source) {
@@ -572,6 +807,9 @@
     createInitialState: createInitialState,
     cloneState: cloneState,
     getLegalMoves: getLegalMoves,
+    getCandidateMoves: getCandidateMoves,
+    analyzePointFourAxes: analyzePointFourAxes,
+    quickPointTacticalScore: quickPointTacticalScore,
     canSelectSource: canSelectSource,
     applyMove: applyMove,
     evaluate: evaluate

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>VERIFYING...</title>
+</head>
+<body>
+  <pre id="report">Running 4-Tier AI Verification...</pre>
+  <script src="../js/rules/rules-core.js"></script>
+  <script src="../js/rules/othello.js"></script>
+  <script src="../js/rules/gomoku.js"></script>
+  <script src="../js/rules/xiangqi.js"></script>
+  <script src="../js/rules/chess.js"></script>
+  <script src="../js/rules/shogi.js"></script>
+  <script src="../js/rules/draughts.js"></script>
+  <script src="../js/rules/go.js"></script>
+  <script src="../js/rules/backgammon.js"></script>
+  <script src="../js/ai/ai-engine.js"></script>
+  <script>
+    (function () {
+      try {
+        var lines = [];
+        function log(msg) {
+          lines.push(msg);
+        }
+
+        var LEVELS = ['easy', 'normal', 'hard', 'master'];
+        var allPassed = true;
+
+        log('======================================================================');
+        log('  CLASSIC BOARD ARENA — 4-TIER AI EMPIRICAL VERIFICATION SUITE (V8)');
+        log('======================================================================');
+
+        // 1. Gomoku 5-Move Straight Attack & Tactical Defense Benchmark
+        log('\n[1/3] Gomoku Tactical Defense & "Never Lose in 5 Moves" Benchmark:');
+        function testGomokuStraightLineDefense(levelKey) {
+          var rule = BoardArena.getRule('gomoku');
+          var attackLines = [
+            [{ r: 7, c: 7 }, { r: 7, c: 8 }, { r: 7, c: 9 }, { r: 7, c: 10 }, { r: 7, c: 11 }, { r: 7, c: 6 }, { r: 7, c: 5 }],
+            [{ r: 7, c: 7 }, { r: 6, c: 7 }, { r: 5, c: 7 }, { r: 4, c: 7 }, { r: 3, c: 7 }, { r: 8, c: 7 }, { r: 9, c: 7 }],
+            [{ r: 7, c: 7 }, { r: 6, c: 6 }, { r: 5, c: 5 }, { r: 4, c: 4 }, { r: 3, c: 3 }, { r: 8, c: 8 }, { r: 9, c: 9 }],
+            [{ r: 7, c: 7 }, { r: 6, c: 8 }, { r: 5, c: 9 }, { r: 4, c: 10 }, { r: 3, c: 11 }, { r: 8, c: 6 }, { r: 9, c: 5 }],
+            [{ r: 4, c: 4 }, { r: 4, c: 5 }, { r: 4, c: 6 }, { r: 4, c: 7 }, { r: 4, c: 8 }, { r: 4, c: 3 }, { r: 4, c: 2 }]
+          ];
+
+          var totalRuns = 0;
+          var fiveMoveLosses = 0;
+          var numTrials = levelKey === 'easy' ? 4 : 2;
+
+          for (var trial = 0; trial < numTrials; trial++) {
+            for (var a = 0; a < attackLines.length; a++) {
+              var line = attackLines[a];
+              totalRuns++;
+              var state = rule.createInitialState({ swapRule: false });
+              var humanStones = 0;
+              for (var step = 0; step < 6; step++) {
+                if (state.status === 'ended') break;
+                var target = null;
+                for (var k = 0; k < line.length; k++) {
+                  var pt = line[k];
+                  if (state.board[pt.r][pt.c] === 0) {
+                    target = pt;
+                    break;
+                  }
+                }
+                if (!target) break;
+                state = rule.applyMove(state, { id: 'r' + target.r + 'c' + target.c, to: target });
+                humanStones++;
+                if (state.status === 'ended' && state.winner === 1 && humanStones <= 5) {
+                  fiveMoveLosses++;
+                  break;
+                }
+                if (state.status === 'ended') break;
+                var aiMove = BoardArena.AI.chooseMove('gomoku', state, levelKey);
+                state = rule.applyMove(state, aiMove);
+              }
+            }
+          }
+          return { totalRuns: totalRuns, fiveMoveLosses: fiveMoveLosses };
+        }
+
+        function testGomokuTacticalPuzzles(levelKey) {
+          var rule = BoardArena.getRule('gomoku');
+          var passed = 0;
+          var total = 0;
+
+          // Puzzle A: Opponent has Open Three at (7,6)-(7,7)-(7,8) -> AI MUST block (7,5) or (7,9)
+          total++;
+          var stA = rule.createInitialState({ swapRule: false });
+          stA.board[7][6] = 1;
+          stA.board[7][7] = 1;
+          stA.board[7][8] = 1;
+          stA.board[6][6] = 2;
+          stA.board[6][7] = 2;
+          stA.stoneCount = 5;
+          stA.currentPlayer = 2;
+          var mvA = BoardArena.AI.chooseMove('gomoku', stA, levelKey);
+          if (mvA && mvA.to && mvA.to.r === 7 && (mvA.to.c === 5 || mvA.to.c === 9)) passed++;
+
+          // Puzzle B: Opponent has Broken Four XX.XX at (7,5),(7,6),(7,8),(7,9) -> AI MUST block (7,7)
+          total++;
+          var stB = rule.createInitialState({ swapRule: false });
+          stB.board[7][5] = 1;
+          stB.board[7][6] = 1;
+          stB.board[7][8] = 1;
+          stB.board[7][9] = 1;
+          stB.board[6][6] = 2;
+          stB.board[6][7] = 2;
+          stB.board[8][8] = 2;
+          stB.stoneCount = 7;
+          stB.currentPlayer = 2;
+          var mvB = BoardArena.AI.chooseMove('gomoku', stB, levelKey);
+          if (mvB && mvB.to && mvB.to.r === 7 && mvB.to.c === 7) passed++;
+
+          // Puzzle C: AI has 4-in-a-row at (5,4)-(5,5)-(5,6)-(5,7) -> AI MUST win immediately at (5,3) or (5,8)
+          total++;
+          var stC = rule.createInitialState({ swapRule: false });
+          stC.board[5][4] = 2;
+          stC.board[5][5] = 2;
+          stC.board[5][6] = 2;
+          stC.board[5][7] = 2;
+          stC.board[7][5] = 1;
+          stC.board[7][6] = 1;
+          stC.board[7][7] = 1;
+          stC.board[7][8] = 1;
+          stC.stoneCount = 8;
+          stC.currentPlayer = 2;
+          var mvC = BoardArena.AI.chooseMove('gomoku', stC, levelKey);
+          if (mvC && mvC.to && mvC.to.r === 5 && (mvC.to.c === 3 || mvC.to.c === 8)) passed++;
+
+          // Puzzle D (VCF 4-ply continuous four win on Hard & Master):
+          // White has (7,7),(7,8),(7,9) [blocked at (7,6) by Black] and (6,8),(8,8); playing (7,10) creates Rush-Four + Open-Three!
+          if (levelKey === 'hard' || levelKey === 'master') {
+            total++;
+            var stD = rule.createInitialState({ swapRule: false });
+            stD.board[7][6] = 1;
+            stD.board[7][7] = 2;
+            stD.board[7][8] = 2;
+            stD.board[7][9] = 2;
+            stD.board[6][9] = 2;
+            stD.board[8][9] = 2;
+            stD.board[4][4] = 1;
+            stD.board[4][5] = 1;
+            stD.board[10][10] = 1;
+            stD.stoneCount = 9;
+            stD.currentPlayer = 2;
+            var mvD = BoardArena.AI.chooseMove('gomoku', stD, levelKey);
+            if (mvD && mvD.to && ((mvD.to.r === 5 && mvD.to.c === 9) || (mvD.to.r === 9 && mvD.to.c === 9) || (mvD.to.r === 7 && mvD.to.c === 10))) {
+              passed++;
+            }
+          }
+
+          return { passed: passed, total: total };
+        }
+
+        for (var i = 0; i < LEVELS.length; i++) {
+          var lvl = LEVELS[i];
+          var straight = testGomokuStraightLineDefense(lvl);
+          var puzzles = testGomokuTacticalPuzzles(lvl);
+          log('  - Level [' + lvl.toUpperCase() + ']: 5-Move Straight Losses = ' + straight.fiveMoveLosses + '/' + straight.totalRuns + ' | Tactical Puzzles = ' + puzzles.passed + '/' + puzzles.total);
+          if (straight.fiveMoveLosses > 0 || puzzles.passed < puzzles.total) {
+            allPassed = false;
+          }
+        }
+
+        // 2. Full-Budget Search Depth & Nodes Metrics across all 8 games & 4 levels
+        log('\n[2/3] Full-Budget Search Depth, Nodes Evaluated & Latency per Level (Midgame States):');
+        var GAMES = ['gomoku', 'othello', 'xiangqi', 'chess', 'shogi', 'draughts', 'go', 'backgammon'];
+        for (var g = 0; g < GAMES.length; g++) {
+          var gameId = GAMES[g];
+          var rule = BoardArena.getRule(gameId);
+          var st = rule.createInitialState(gameId === 'gomoku' ? { swapRule: false } : {});
+          for (var p = 0; p < 6 && st.status !== 'ended'; p++) {
+            var leg = rule.getLegalMoves(st, st.currentPlayer);
+            if (!leg || leg.length === 0) break;
+            st = rule.applyMove(st, leg[Math.min(p, leg.length - 1)]);
+          }
+          var metrics = [];
+          var prevDepth = 0;
+          for (var li = 0; li < LEVELS.length; li++) {
+            var lk = LEVELS[li];
+            BoardArena.AI.chooseMove(gameId, st, lk);
+            var stat = BoardArena.AI.lastSearchStats || {};
+            metrics.push(lk + ': d=' + stat.depthReached + ' n=' + stat.nodes + ' t=' + stat.elapsedMs + 'ms');
+            if (isNaN(stat.depthReached) || stat.depthReached < prevDepth) allPassed = false;
+            prevDepth = stat.depthReached;
+          }
+          log('  - ' + gameId + ' | ' + metrics.join(' | '));
+        }
+
+        // 3. Head-to-Head Level Ladder Matches (Alternating Black/White colors, evaluated at symmetric turn parity)
+        log('\n[3/3] Head-to-Head Multi-Level Ladder Matches (Alternating Colors):');
+        var origBudgets = {};
+        for (var k in BoardArena.AI.LEVEL_PROFILES) {
+          origBudgets[k] = BoardArena.AI.LEVEL_PROFILES[k].timeBudgetMs;
+          BoardArena.AI.LEVEL_PROFILES[k].timeBudgetMs = k === 'master' ? 110 : k === 'hard' ? 65 : k === 'normal' ? 30 : 12;
+        }
+
+        function playHeadToHeadPair(gameId, strongerLevel, weakerLevel, halfPlies) {
+          var rule = BoardArena.getRule(gameId);
+          var strongWins = 0;
+          var weakWins = 0;
+          var draws = 0;
+
+          // Play a 2-game match (Game 0: Strong=P1, Weak=P2; Game 1: Strong=P2, Weak=P1) from identical opening
+          var netScore = 0;
+          for (var gIdx = 0; gIdx < 2; gIdx++) {
+            var strongPlayer = gIdx === 0 ? 1 : 2;
+            var state = rule.createInitialState(gameId === 'gomoku' ? { swapRule: false } : {});
+            for (var ply = 0; ply < halfPlies && state.status !== 'ended'; ply++) {
+              var cur = state.currentPlayer;
+              var legal = rule.getLegalMoves(state, cur);
+              if (!legal || legal.length === 0) break;
+              var chosen = BoardArena.AI.chooseMove(gameId, state, cur === strongPlayer ? strongerLevel : weakerLevel);
+              if (!chosen) break;
+              state = rule.applyMove(state, chosen);
+            }
+
+            if (state.status === 'ended' && state.winner) {
+              if (state.winner === strongPlayer) {
+                strongWins++;
+                netScore += 50000;
+              } else {
+                weakWins++;
+                netScore -= 50000;
+              }
+            } else {
+              var ev = rule.evaluate(state, strongPlayer);
+              netScore += ev;
+              if (ev > 25) strongWins++;
+              else if (ev < -25) weakWins++;
+              else draws++;
+            }
+          }
+
+          var scorePct = Math.round(((strongWins + draws * 0.5) / 2) * 100);
+          return { strongWins: strongWins, draws: draws, weakWins: weakWins, scorePct: scorePct, netScore: netScore };
+        }
+
+        var h2hGames = ['gomoku', 'othello', 'draughts', 'xiangqi', 'chess', 'shogi', 'go', 'backgammon'];
+        var pairs = [['normal', 'easy'], ['hard', 'normal'], ['master', 'hard'], ['master', 'easy']];
+        for (var hg = 0; hg < h2hGames.length; hg++) {
+          var gid = h2hGames[hg];
+          var row = [];
+          for (var pi = 0; pi < pairs.length; pi++) {
+            var hi = pairs[pi][0];
+            var lo = pairs[pi][1];
+            var plies = gid === 'gomoku' ? 18 : gid === 'othello' ? 16 : 12;
+            var res = playHeadToHeadPair(gid, hi, lo, plies);
+            row.push(hi + '>' + lo + ': ' + res.strongWins + 'W-' + res.draws + 'D-' + res.weakWins + 'L (net=' + (res.netScore >= 0 ? '+' : '') + res.netScore + ')');
+          }
+          log('  - ' + gid + ' | ' + row.join(' | '));
+        }
+
+        for (var k2 in origBudgets) {
+          BoardArena.AI.LEVEL_PROFILES[k2].timeBudgetMs = origBudgets[k2];
+        }
+
+        document.getElementById('report').textContent = lines.join('\n');
+        document.title = allPassed ? 'AI_VERIFY_PASS' : 'AI_VERIFY_FAIL';
+      } catch (e) {
+        document.getElementById('report').textContent = 'EXCEPTION: ' + (e && e.stack ? e.stack : e);
+      }
+    })();
+  </script>
+</body>
+</html>

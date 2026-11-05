@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.2.0
+// Changes: Merge async AI move (chooseMoveAsync, native engine bridge only when local server online)
+// 修改: 合併八大棋藝2 的非同步電腦走棋；只有連上本機伺服器才啟用原生引擎
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Skip CMP banner / ad-free hint label when ads off; ONLINE_PVP_ENABLED flag hides login, PvP, live tables, leaderboard and fake online counts
 // 修改: 廣告關閉時不顯示 Cookie 同意橫幅、提示改為免廣告；新增 ONLINE_PVP_ENABLED 開關，隱藏登入、雙人對戰、即時對局桌、排行榜與假在線人數
@@ -102,6 +108,8 @@
     }
 
     await BoardArena.Client.init();
+    // 只有連上本機 BoardArenaServer 時才呼叫原生棋力引擎；公開網站直接用瀏覽器內建 AI
+    BoardArena.AI.useNativeEngineBridge = BoardArena.Client.isServerOnline();
     BoardArena.Client.onEvent(function (ev) {
       if (ev.type === 'auth_changed') {
         renderHeaderAuth();
@@ -1068,11 +1076,23 @@
       if (!curMatch || curMatch !== m || curMatch.gameState.status !== 'playing') return;
       if (curMatch.gameState.currentPlayer === curMatch.humanSide) return;
 
-      const aiMove = BoardArena.AI.chooseMove(curMatch.gameId, curMatch.gameState, curMatch.aiLevel);
-      if (aiMove) {
-        applyMatchMoveInternal(aiMove, false);
+      const snapshotSeq = curMatch.moveHistory.length;
+      if (typeof BoardArena.AI.chooseMoveAsync === 'function') {
+        BoardArena.AI.chooseMoveAsync(curMatch.gameId, curMatch.gameState, curMatch.aiLevel, function (aiMove) {
+          const liveMatch = stateStore.match;
+          if (!liveMatch || liveMatch !== m || liveMatch.gameState.status !== 'playing') return;
+          if (liveMatch.moveHistory.length !== snapshotSeq || liveMatch.gameState.currentPlayer === liveMatch.humanSide) return;
+          if (aiMove) {
+            applyMatchMoveInternal(aiMove, false);
+          }
+        });
+      } else {
+        const aiMove = BoardArena.AI.chooseMove(curMatch.gameId, curMatch.gameState, curMatch.aiLevel);
+        if (aiMove) {
+          applyMatchMoveInternal(aiMove, false);
+        }
       }
-    }, 260);
+    }, 120);
   }
 
   function tickMatchClock() {

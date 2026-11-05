@@ -19,7 +19,9 @@
 
 不需要安裝任何東西，直接用瀏覽器開啟 `index.html`，或執行 `play_board_arena.bat`。
 
-規則測試：用瀏覽器開啟 `tests/run-all-rules-tests.html`。
+規則測試：用瀏覽器開啟 `tests/run-all-rules-tests.html`；AI 難度驗證：`tests/verify-ai-levels.html`。
+
+**原生棋力引擎（選用，僅限本機）**：在本機執行 `start_multiplayer_server.bat` 啟動伺服器後，電腦對手會改用 `engines/` 資料夾內的原生引擎（例如 Fairy-Stockfish、Edax）。引擎執行檔不放在 repo 內，需自行下載；公開網站一律使用瀏覽器內建 AI。
 
 ## 功能開關
 

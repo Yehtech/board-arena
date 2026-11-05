@@ -485,32 +485,50 @@
 
     let myPips = (state.bar[me] || 0) * 25;
     let oppPips = (state.bar[opp] || 0) * 25;
+    let myPrimeRun = 0;
+    let oppPrimeRun = 0;
 
     for (let i = 0; i < 24; i++) {
       const pt = state.points[i];
-      if (!pt || pt.count <= 0) continue;
+      if (!pt || pt.count <= 0) {
+        myPrimeRun = 0;
+        oppPrimeRun = 0;
+        continue;
+      }
 
       if (pt.owner === me) {
+        oppPrimeRun = 0;
         const dist = me === 1 ? i + 1 : 24 - i;
         myPips += dist * pt.count;
         if (pt.count === 1) {
-          // Exposed blot penalty (higher penalty when closer to opponent home)
-          score -= 35;
+          myPrimeRun = 0;
+          // Exposed blot penalty (higher penalty when closer to own home board)
+          score -= 28 + Math.max(0, 24 - dist) * 2;
         } else if (pt.count >= 2) {
-          // Made point / prime / home-board anchor bonus
-          score += 26;
+          myPrimeRun++;
+          score += 28 + Math.min(4, myPrimeRun) * 14;
           if ((me === 1 && i <= 5) || (me === 2 && i >= 18)) {
+            score += 22;
+          }
+          // Golden point (bar point / 5-point) bonus
+          if ((me === 1 && (i === 4 || i === 6)) || (me === 2 && (i === 19 || i === 17))) {
             score += 18;
           }
         }
       } else {
+        myPrimeRun = 0;
         const dist = opp === 1 ? i + 1 : 24 - i;
         oppPips += dist * pt.count;
         if (pt.count === 1) {
-          score += 35;
+          oppPrimeRun = 0;
+          score += 28 + Math.max(0, 24 - dist) * 2;
         } else if (pt.count >= 2) {
-          score -= 26;
+          oppPrimeRun++;
+          score -= 28 + Math.min(4, oppPrimeRun) * 14;
           if ((opp === 1 && i <= 5) || (opp === 2 && i >= 18)) {
+            score -= 22;
+          }
+          if ((opp === 1 && (i === 4 || i === 6)) || (opp === 2 && (i === 19 || i === 17))) {
             score -= 18;
           }
         }
@@ -518,7 +536,7 @@
     }
 
     // Pip race advantage
-    score += (oppPips - myPips) * 4;
+    score += (oppPips - myPips) * 5;
     return score;
   }
 

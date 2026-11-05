@@ -245,29 +245,60 @@
           'openingMoves=' + bgMoves0.length + ', mandatoryBar=' + allFromBar
         );
 
-        // 11. All 8 Games × 4 AI Levels (Easy / Normal / Hard / Master) Under 1s Budget
+        // 11. All 8 Games × 4 AI Levels (Easy / Normal / Hard / Master) Depth Differentiation & Tactical Guard
         const gameIds = ['othello', 'xiangqi', 'go', 'gomoku', 'draughts', 'chess', 'shogi', 'backgammon'];
         const levels = ['easy', 'normal', 'hard', 'master'];
         for (let g = 0; g < gameIds.length; g++) {
           const gid = gameIds[g];
           const rule = BoardArena.getRule(gid);
-          const st = rule.createInitialState({ boardSize: 9, seed: 101 });
+          let st = rule.createInitialState({ boardSize: 9, seed: 101, swapRule: false });
+          // Advance 4 plies so midgame search depth differentiation is measured outside opening book
+          for (let p = 0; p < 4 && st.status === 'playing'; p++) {
+            const leg = rule.getLegalMoves(st, st.currentPlayer);
+            if (!leg || !leg.length) break;
+            st = rule.applyMove(st, leg[0]);
+          }
           const legalIds = new Set(rule.getLegalMoves(st, st.currentPlayer).map((m) => m.id));
           let allLevelsValid = true;
           let maxElapsed = 0;
+          const depths = [];
           for (let l = 0; l < levels.length; l++) {
             const t0 = performance.now();
             const chosen = BoardArena.AI.chooseMove(gid, st, levels[l]);
             const dt = Math.round(performance.now() - t0);
+            const stat = BoardArena.AI.lastSearchStats || {};
+            depths.push(stat.depthReached || 1);
             if (dt > maxElapsed) maxElapsed = dt;
-            if (!chosen || !legalIds.has(chosen.id) || dt > 1200) {
+            if (!chosen || !legalIds.has(chosen.id) || dt > 1500) {
               allLevelsValid = false;
             }
           }
+          // Verify depth strictly increases from Easy (Lv1) to Master (Lv4)
+          if (!(depths[3] > depths[0] && depths[2] >= depths[1] && depths[1] >= depths[0])) {
+            allLevelsValid = false;
+          }
+          // For Gomoku, additionally verify even Easy (Lv1) blocks Open-Three & 4-in-a-row (never loses in 5 moves)
+          if (gid === 'gomoku') {
+            const gRule = BoardArena.getRule('gomoku');
+            const trap = gRule.createInitialState({ swapRule: false });
+            trap.board[7][6] = 1;
+            trap.board[7][7] = 1;
+            trap.board[7][8] = 1;
+            trap.board[6][6] = 2;
+            trap.board[6][7] = 2;
+            trap.stoneCount = 5;
+            trap.currentPlayer = 2;
+            for (let l = 0; l < levels.length; l++) {
+              const defMove = BoardArena.AI.chooseMove('gomoku', trap, levels[l]);
+              if (!defMove || !defMove.to || defMove.to.r !== 7 || (defMove.to.c !== 5 && defMove.to.c !== 9)) {
+                allLevelsValid = false;
+              }
+            }
+          }
           check(
-            '11.' + (g + 1) + ' AI 4-Tier (' + gid.toUpperCase() + ': Easy/Normal/Hard/Master)',
+            '11.' + (g + 1) + ' AI 4-Tier (' + gid.toUpperCase() + ': Lv1..Lv4 Depths=' + depths.join('->') + ')',
             allLevelsValid,
-            '4/4 legal, maxTime=' + maxElapsed + 'ms'
+            '4/4 legal, depths=' + depths.join('->') + ', maxTime=' + maxElapsed + 'ms'
           );
         }
 

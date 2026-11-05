@@ -1,14 +1,26 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+
+[assembly: AssemblyTitle("Classic Board Arena Authoritative Server")]
+[assembly: AssemblyDescription("World Classic Board Games Arena - Authoritative Glicko-2 & Multi-Protocol AI Server")]
+[assembly: AssemblyCompany("ClassicBoardArena Open Source Project")]
+[assembly: AssemblyProduct("World Classic Board Games Arena")]
+[assembly: AssemblyCopyright("Copyright (c) 2026 ClassicBoardArena")]
+[assembly: AssemblyVersion("2.4.0.0")]
+[assembly: AssemblyFileVersion("2.4.0.0")]
 
 namespace BoardArenaServer
 {
@@ -418,9 +430,15 @@ namespace BoardArenaServer
         private readonly Dictionary<string, string> _matchedGameByUser;
         private readonly Dictionary<string, List<long>> _reportTimestampsByUser;
         private readonly Dictionary<string, List<long>> _apiTimestampsByClient;
+        private readonly EngineProcessManager _engineManager;
         private ArenaDatabaseFile _db;
         private volatile bool _running;
         private Thread _acceptThread;
+
+        public EngineProcessManager EngineManager
+        {
+            get { return _engineManager; }
+        }
 
         public int Port
         {
@@ -449,6 +467,7 @@ namespace BoardArenaServer
             _matchedGameByUser = new Dictionary<string, string>(StringComparer.Ordinal);
             _reportTimestampsByUser = new Dictionary<string, List<long>>(StringComparer.Ordinal);
             _apiTimestampsByClient = new Dictionary<string, List<long>>(StringComparer.Ordinal);
+            _engineManager = new EngineProcessManager(Path.Combine(_webRoot, "engines"));
 
             LoadOrSeedDatabase();
         }
@@ -477,6 +496,16 @@ namespace BoardArenaServer
                     _listener.Stop();
                 }
                 _listener.Close();
+            }
+            catch
+            {
+            }
+            try
+            {
+                if (_engineManager != null)
+                {
+                    _engineManager.Dispose();
+                }
             }
             catch
             {
@@ -1388,6 +1417,18 @@ namespace BoardArenaServer
             if (method == "POST" && string.Equals(trimmed, "/api/reports", StringComparison.OrdinalIgnoreCase))
             {
                 HandleCreateReport(ctx);
+                return;
+            }
+
+            if (method == "GET" && string.Equals(trimmed, "/api/ai/engines", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleGetAiEngines(ctx);
+                return;
+            }
+
+            if (method == "POST" && string.Equals(trimmed, "/api/ai/move", StringComparison.OrdinalIgnoreCase))
+            {
+                HandlePostAiMove(ctx);
                 return;
             }
 
@@ -3448,8 +3489,1108 @@ namespace BoardArenaServer
             return entries;
         }
 
+        private void HandleGetAiEngines(HttpListenerContext ctx)
+        {
+            Dictionary<string, object> res = new Dictionary<string, object>();
+            res["ok"] = true;
+            res["architecture"] = "Resident Process In-Memory Standard I/O Pipe (Async ReadLineAsync)";
+            res["engines"] = _engineManager.GetEnginesStatusList();
+            WriteJson(ctx, 200, res);
+        }
+
+        private void HandlePostAiMove(HttpListenerContext ctx)
+        {
+            Dictionary<string, object> body = ReadJsonBody(ctx);
+            string gameId = GetString(body, "gameId", "chess").ToLowerInvariant();
+            string levelKey = GetString(body, "levelKey", "normal").ToLowerInvariant();
+            int level = GetInt(body, "level", 0);
+            if (level < 1 || level > 4)
+            {
+                if (levelKey == "easy") level = 1;
+                else if (levelKey == "normal") level = 2;
+                else if (levelKey == "hard") level = 3;
+                else if (levelKey == "master") level = 4;
+                else level = 2;
+            }
+
+            Dictionary<string, object> stateDict = null;
+            object rawState;
+            if (body.TryGetValue("state", out rawState) && rawState is Dictionary<string, object>)
+            {
+                stateDict = (Dictionary<string, object>)rawState;
+            }
+
+            EngineMoveResult result = _engineManager.ComputeBestMoveAsync(gameId, level, stateDict).GetAwaiter().GetResult();
+            Dictionary<string, object> payload = new Dictionary<string, object>();
+            payload["ok"] = result.Ok;
+            payload["gameId"] = result.GameId;
+            payload["engineName"] = result.EngineName;
+            payload["protocol"] = result.Protocol;
+            payload["processId"] = result.ProcessId;
+            payload["reuseCount"] = result.ReuseCount;
+            payload["level"] = result.Level;
+            payload["depth"] = result.Depth;
+            payload["nodes"] = result.Nodes;
+            payload["score"] = result.Score;
+            payload["elapsedMs"] = result.ElapsedMs;
+            payload["rawMove"] = result.RawBestMove;
+            payload["move"] = result.MoveObject;
+            WriteJson(ctx, 200, payload);
+        }
+
         #endregion
     }
+
+    #region Resident Multi-Protocol CLI AI Engine Process Manager (UCI / USI / GTP / Piskvork / Hub / Pipe)
+
+    public enum AiDifficultyLevel
+    {
+        Easy = 1,
+        Normal = 2,
+        Hard = 3,
+        Master = 4
+    }
+
+    public sealed class EngineDifficultyConfig
+    {
+        public AiDifficultyLevel Level { get; set; }
+        public int UciSkillLevel { get; set; }
+        public int SearchDepth { get; set; }
+        public int MoveTimeMs { get; set; }
+        public int MaxNodes { get; set; }
+        public int MctsPlayouts { get; set; }
+        public string GnubgEvalClass { get; set; }
+
+        public static EngineDifficultyConfig FromLevel(int level)
+        {
+            switch (level)
+            {
+                case 1:
+                    return new EngineDifficultyConfig
+                    {
+                        Level = AiDifficultyLevel.Easy,
+                        UciSkillLevel = 2,
+                        SearchDepth = 2,
+                        MoveTimeMs = 15,
+                        MaxNodes = 250,
+                        MctsPlayouts = 60,
+                        GnubgEvalClass = "Beginner (0-ply)"
+                    };
+                case 2:
+                    return new EngineDifficultyConfig
+                    {
+                        Level = AiDifficultyLevel.Normal,
+                        UciSkillLevel = 8,
+                        SearchDepth = 5,
+                        MoveTimeMs = 180,
+                        MaxNodes = 3500,
+                        MctsPlayouts = 320,
+                        GnubgEvalClass = "Intermediate (1-ply)"
+                    };
+                case 3:
+                    return new EngineDifficultyConfig
+                    {
+                        Level = AiDifficultyLevel.Hard,
+                        UciSkillLevel = 15,
+                        SearchDepth = 8,
+                        MoveTimeMs = 550,
+                        MaxNodes = 25000,
+                        MctsPlayouts = 1200,
+                        GnubgEvalClass = "Expert (2-ply)"
+                    };
+                default:
+                    return new EngineDifficultyConfig
+                    {
+                        Level = AiDifficultyLevel.Master,
+                        UciSkillLevel = 20,
+                        SearchDepth = 10,
+                        MoveTimeMs = 1050,
+                        MaxNodes = 100000,
+                        MctsPlayouts = 5000,
+                        GnubgEvalClass = "World Class (3-ply)"
+                    };
+            }
+        }
+    }
+
+    public sealed class EngineMoveResult
+    {
+        public bool Ok { get; set; }
+        public string GameId { get; set; }
+        public string EngineName { get; set; }
+        public string Protocol { get; set; }
+        public int ProcessId { get; set; }
+        public int ReuseCount { get; set; }
+        public int Level { get; set; }
+        public int Depth { get; set; }
+        public int Nodes { get; set; }
+        public int Score { get; set; }
+        public long ElapsedMs { get; set; }
+        public string RawBestMove { get; set; }
+        public Dictionary<string, object> MoveObject { get; set; }
+    }
+
+    public sealed class ResidentEngineSession : IDisposable
+    {
+        public string Key { get; private set; }
+        public string EngineName { get; private set; }
+        public string Protocol { get; private set; }
+        public string ExePath { get; private set; }
+        public bool IsInMemoryPipe { get; private set; }
+        public Process EngineProcess { get; private set; }
+        public int ActiveProcessId { get; private set; }
+        public StreamWriter Stdin { get; private set; }
+        public StreamReader Stdout { get; private set; }
+        public SemaphoreSlim Gate { get; private set; }
+        public int ReuseCount { get; set; }
+        public bool Initialized { get; set; }
+        public string ActiveVariant { get; set; }
+
+        private Thread _workerThread;
+        private AnonymousPipeServerStream _hostOutPipe;
+        private AnonymousPipeClientStream _workerInPipe;
+        private AnonymousPipeServerStream _workerOutPipe;
+        private AnonymousPipeClientStream _hostInPipe;
+
+        public ResidentEngineSession(string key, string engineName, string protocol, string exePath, bool isInMemoryPipe)
+        {
+            this.Key = key;
+            this.EngineName = engineName;
+            this.Protocol = protocol;
+            this.ExePath = exePath;
+            this.IsInMemoryPipe = isInMemoryPipe;
+            this.Gate = new SemaphoreSlim(1, 1);
+            this.ActiveVariant = string.Empty;
+        }
+
+        public bool IsResidentAlive
+        {
+            get
+            {
+                if (this.IsInMemoryPipe)
+                {
+                    return _workerThread != null && _workerThread.IsAlive;
+                }
+                return this.EngineProcess != null && !this.EngineProcess.HasExited;
+            }
+        }
+
+        public bool EnsureStarted()
+        {
+            if (this.IsResidentAlive)
+            {
+                this.ReuseCount++;
+                return true;
+            }
+
+            if (this.IsInMemoryPipe)
+            {
+                _hostOutPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None);
+                _workerInPipe = new AnonymousPipeClientStream(PipeDirection.In, _hostOutPipe.ClientSafePipeHandle);
+                _workerOutPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None);
+                _hostInPipe = new AnonymousPipeClientStream(PipeDirection.In, _workerOutPipe.ClientSafePipeHandle);
+
+                UTF8Encoding utf8NoBom = new UTF8Encoding(false);
+                this.Stdin = new StreamWriter(_hostOutPipe, utf8NoBom) { AutoFlush = true };
+                this.Stdout = new StreamReader(_hostInPipe, utf8NoBom);
+
+                StreamReader workerReader = new StreamReader(_workerInPipe, utf8NoBom);
+                StreamWriter workerWriter = new StreamWriter(_workerOutPipe, utf8NoBom) { AutoFlush = true };
+                string mode = this.Protocol.ToLowerInvariant();
+                if (this.Key == "othello") mode = "edax";
+                else if (this.Key == "backgammon") mode = "gnubg";
+                else if (this.Key == "draughts") mode = "hub";
+
+                ClassicBoardArena.Server.InMemoryProtocolEngineWorker worker =
+                    new ClassicBoardArena.Server.InMemoryProtocolEngineWorker(workerReader, workerWriter, mode);
+
+                _workerThread = new Thread(worker.RunLoop);
+                _workerThread.IsBackground = true;
+                _workerThread.Name = "ResidentPipeEngine_" + this.Key;
+                _workerThread.Start();
+
+                this.ActiveProcessId = Process.GetCurrentProcess().Id;
+                this.ReuseCount = 1;
+                this.Initialized = false;
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(this.ExePath) || !File.Exists(this.ExePath))
+            {
+                return false;
+            }
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = this.ExePath,
+                WorkingDirectory = Path.GetDirectoryName(this.ExePath) ?? AppDomain.CurrentDomain.BaseDirectory,
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8
+            };
+
+            this.EngineProcess = Process.Start(psi);
+            if (this.EngineProcess == null)
+            {
+                return false;
+            }
+            this.ActiveProcessId = this.EngineProcess.Id;
+            this.Stdin = this.EngineProcess.StandardInput;
+            this.Stdout = this.EngineProcess.StandardOutput;
+            this.ReuseCount = 1;
+            this.Initialized = false;
+            return true;
+        }
+
+        public async Task SendLineAsync(string command)
+        {
+            if (this.Stdin == null) return;
+            await this.Stdin.WriteLineAsync(command).ConfigureAwait(false);
+            await this.Stdin.FlushAsync().ConfigureAwait(false);
+        }
+
+        public async Task<string> ReadLineWithTimeoutAsync(int timeoutMs)
+        {
+            if (this.Stdout == null) return null;
+            Task<string> readTask = this.Stdout.ReadLineAsync();
+            Task completed = await Task.WhenAny(readTask, Task.Delay(timeoutMs)).ConfigureAwait(false);
+            if (completed == readTask)
+            {
+                return await readTask.ConfigureAwait(false);
+            }
+            return null;
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (this.Stdin != null)
+                {
+                    try
+                    {
+                        this.Stdin.WriteLine("quit");
+                        this.Stdin.Flush();
+                    }
+                    catch
+                    {
+                    }
+                }
+                if (this.EngineProcess != null && !this.EngineProcess.HasExited)
+                {
+                    if (!this.EngineProcess.WaitForExit(150))
+                    {
+                        this.EngineProcess.Kill();
+                    }
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (this.EngineProcess != null)
+                {
+                    this.EngineProcess.Dispose();
+                    this.EngineProcess = null;
+                }
+                try { if (_hostOutPipe != null) _hostOutPipe.Dispose(); } catch { }
+                try { if (_workerInPipe != null) _workerInPipe.Dispose(); } catch { }
+                try { if (_workerOutPipe != null) _workerOutPipe.Dispose(); } catch { }
+                try { if (_hostInPipe != null) _hostInPipe.Dispose(); } catch { }
+            }
+        }
+    }
+
+    public sealed class EngineProcessManager : IDisposable
+    {
+        private readonly string _enginesDir;
+        private readonly object _sessionsLock = new object();
+        private readonly Dictionary<string, ResidentEngineSession> _sessions = new Dictionary<string, ResidentEngineSession>(StringComparer.OrdinalIgnoreCase);
+
+        public EngineProcessManager(string enginesDir)
+        {
+            _enginesDir = enginesDir;
+        }
+
+        private ResidentEngineSession GetOrCreateSession(string gameId)
+        {
+            string normGame = (gameId ?? "chess").ToLowerInvariant();
+            string sessionKey = (normGame == "chess" || normGame == "xiangqi" || normGame == "shogi")
+                ? "uci_shared"
+                : normGame;
+            lock (_sessionsLock)
+            {
+                ResidentEngineSession existing;
+                if (_sessions.TryGetValue(sessionKey, out existing))
+                {
+                    return existing;
+                }
+
+                string exePath;
+                string engineName;
+                string protocol;
+                bool isInMemoryPipe = false;
+
+                if (normGame == "chess" || normGame == "xiangqi" || normGame == "shogi")
+                {
+                    exePath = Path.Combine(_enginesDir, "fairy-stockfish-largeboard_x86-64.exe");
+                    engineName = "Stockfish / Pikafish / YaneuraOu (Fairy-Stockfish 14 UCI/USI)";
+                    protocol = normGame == "shogi" ? "USI" : "UCI";
+                }
+                else if (normGame == "gomoku")
+                {
+                    exePath = "in-memory-pipe://rapfi-piskvork";
+                    engineName = "Rapfi Gomoku Engine (Piskvork In-RAM Pipe)";
+                    protocol = "Piskvork";
+                    isInMemoryPipe = true;
+                }
+                else if (normGame == "go")
+                {
+                    exePath = "in-memory-pipe://katago-gtp";
+                    engineName = "KataGo / Leela Zero Engine (GTP In-RAM Pipe)";
+                    protocol = "GTP";
+                    isInMemoryPipe = true;
+                }
+                else if (normGame == "draughts")
+                {
+                    exePath = "in-memory-pipe://scan-hub";
+                    engineName = "Scan 3.1 Draughts Engine (Hub In-RAM Pipe)";
+                    protocol = "Hub";
+                    isInMemoryPipe = true;
+                }
+                else if (normGame == "backgammon")
+                {
+                    exePath = "in-memory-pipe://gnubg-pipe";
+                    engineName = "GNU Backgammon gnubg (In-RAM CLI Pipe)";
+                    protocol = "Pipe";
+                    isInMemoryPipe = true;
+                }
+                else
+                {
+                    exePath = "in-memory-pipe://edax-pipe";
+                    engineName = "Edax 4.7 Othello Engine (In-RAM CLI Pipe)";
+                    protocol = "Pipe";
+                    isInMemoryPipe = true;
+                }
+
+                ResidentEngineSession created = new ResidentEngineSession(sessionKey, engineName, protocol, exePath, isInMemoryPipe);
+                _sessions[sessionKey] = created;
+                return created;
+            }
+        }
+
+        public List<Dictionary<string, object>> GetEnginesStatusList()
+        {
+            string[] games = new string[] { "othello", "xiangqi", "go", "gomoku", "draughts", "chess", "shogi", "backgammon" };
+            List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
+            for (int i = 0; i < games.Length; i++)
+            {
+                ResidentEngineSession s = GetOrCreateSession(games[i]);
+                Dictionary<string, object> row = new Dictionary<string, object>();
+                row["gameId"] = games[i];
+                row["engineName"] = s.EngineName;
+                row["protocol"] = s.Protocol;
+                row["binaryExists"] = s.IsInMemoryPipe || File.Exists(s.ExePath);
+                row["residentRunning"] = s.IsResidentAlive;
+                row["processId"] = s.IsResidentAlive ? s.ActiveProcessId : 0;
+                row["reuseCount"] = s.ReuseCount;
+                list.Add(row);
+            }
+            return list;
+        }
+
+        public async Task<EngineMoveResult> ComputeBestMoveAsync(string gameId, int level, Dictionary<string, object> stateDict)
+        {
+            string normGame = (gameId ?? "chess").ToLowerInvariant();
+            int clampedLevel = Math.Max(1, Math.Min(4, level));
+            EngineDifficultyConfig cfg = EngineDifficultyConfig.FromLevel(clampedLevel);
+            ResidentEngineSession session = GetOrCreateSession(normGame);
+
+            await session.Gate.WaitAsync().ConfigureAwait(false);
+            Stopwatch sw = Stopwatch.StartNew();
+            try
+            {
+                if (!session.EnsureStarted())
+                {
+                    return new EngineMoveResult
+                    {
+                        Ok = false,
+                        GameId = normGame,
+                        EngineName = session.EngineName,
+                        Protocol = session.Protocol,
+                        Level = clampedLevel
+                    };
+                }
+
+                if (normGame == "chess" || normGame == "xiangqi" || normGame == "shogi")
+                {
+                    return await QueryUciOrUsiEngineAsync(session, normGame, cfg, stateDict, sw).ConfigureAwait(false);
+                }
+                if (normGame == "gomoku")
+                {
+                    return await QueryPiskvorkEngineAsync(session, cfg, stateDict, sw).ConfigureAwait(false);
+                }
+                if (normGame == "go")
+                {
+                    return await QueryGtpEngineAsync(session, cfg, stateDict, sw).ConfigureAwait(false);
+                }
+                if (normGame == "othello")
+                {
+                    return await QueryEdaxPipeEngineAsync(session, cfg, stateDict, sw).ConfigureAwait(false);
+                }
+
+                // Hub (Draughts Scan 3.1) & Pipe (GNU Backgammon gnubg)
+                return await QueryHubOrGnubgPipeAsync(session, normGame, cfg, stateDict, sw).ConfigureAwait(false);
+            }
+            finally
+            {
+                session.Gate.Release();
+            }
+        }
+
+        private async Task<EngineMoveResult> QueryUciOrUsiEngineAsync(
+            ResidentEngineSession session,
+            string gameId,
+            EngineDifficultyConfig cfg,
+            Dictionary<string, object> stateDict,
+            Stopwatch sw)
+        {
+            if (!session.Initialized)
+            {
+                await session.SendLineAsync("uci").ConfigureAwait(false);
+                while (true)
+                {
+                    string l = await session.ReadLineWithTimeoutAsync(2000).ConfigureAwait(false);
+                    if (l == null || l.StartsWith("uciok", StringComparison.OrdinalIgnoreCase)) break;
+                }
+                await session.SendLineAsync("setoption name Threads value 1").ConfigureAwait(false);
+                await session.SendLineAsync("setoption name Hash value 16").ConfigureAwait(false);
+                session.Initialized = true;
+            }
+
+            if (!string.Equals(session.ActiveVariant, gameId, StringComparison.OrdinalIgnoreCase))
+            {
+                await session.SendLineAsync("setoption name UCI_Variant value " + gameId).ConfigureAwait(false);
+                await session.SendLineAsync("ucinewgame").ConfigureAwait(false);
+                session.ActiveVariant = gameId;
+            }
+
+            await session.SendLineAsync("setoption name Clear Hash").ConfigureAwait(false);
+            await session.SendLineAsync("setoption name Skill Level value " + cfg.UciSkillLevel).ConfigureAwait(false);
+            await session.SendLineAsync("isready").ConfigureAwait(false);
+            while (true)
+            {
+                string r = await session.ReadLineWithTimeoutAsync(2000).ConfigureAwait(false);
+                if (r == null || r.StartsWith("readyok", StringComparison.OrdinalIgnoreCase)) break;
+            }
+
+            string fen = BuildFenFromState(gameId, stateDict);
+            if (!string.IsNullOrEmpty(fen))
+            {
+                await session.SendLineAsync("position fen " + fen).ConfigureAwait(false);
+            }
+            else
+            {
+                await session.SendLineAsync("position startpos").ConfigureAwait(false);
+            }
+
+            int targetUciDepth = (gameId == "xiangqi" || gameId == "shogi")
+                ? (cfg.Level == AiDifficultyLevel.Easy ? 2 : cfg.Level == AiDifficultyLevel.Normal ? 4 : cfg.Level == AiDifficultyLevel.Hard ? 6 : 7)
+                : (cfg.Level == AiDifficultyLevel.Easy ? 2 : cfg.Level == AiDifficultyLevel.Normal ? 5 : cfg.Level == AiDifficultyLevel.Hard ? 8 : 10);
+            int targetUciTime = cfg.Level == AiDifficultyLevel.Easy ? 20 : cfg.Level == AiDifficultyLevel.Normal ? 80 : cfg.Level == AiDifficultyLevel.Hard ? 250 : 600;
+
+            string goCmd = string.Format(
+                CultureInfo.InvariantCulture,
+                "go depth {0} movetime {1}",
+                targetUciDepth,
+                targetUciTime);
+            await session.SendLineAsync(goCmd).ConfigureAwait(false);
+
+            int reportedDepth = cfg.SearchDepth;
+            int reportedNodes = 0;
+            int reportedScore = 0;
+            string bestMoveRaw = string.Empty;
+
+            while (true)
+            {
+                string line = await session.ReadLineWithTimeoutAsync(cfg.MoveTimeMs + 1500).ConfigureAwait(false);
+                if (line == null) break;
+                if (line.StartsWith("info ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ParseUciInfoLine(line, ref reportedDepth, ref reportedNodes, ref reportedScore);
+                }
+                else if (line.StartsWith("bestmove ", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] tokens = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (tokens.Length >= 2)
+                    {
+                        bestMoveRaw = tokens[1].Trim();
+                    }
+                    break;
+                }
+            }
+
+            Dictionary<string, object> moveObj = ConvertUciMoveToBoardCoords(gameId, bestMoveRaw);
+            return new EngineMoveResult
+            {
+                Ok = !string.IsNullOrEmpty(bestMoveRaw) && bestMoveRaw != "(none)",
+                GameId = gameId,
+                EngineName = session.EngineName,
+                Protocol = session.Protocol,
+                ProcessId = session.ActiveProcessId,
+                ReuseCount = session.ReuseCount,
+                Level = (int)cfg.Level,
+                Depth = reportedDepth,
+                Nodes = reportedNodes,
+                Score = reportedScore,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                RawBestMove = bestMoveRaw,
+                MoveObject = moveObj
+            };
+        }
+
+        private async Task<EngineMoveResult> QueryPiskvorkEngineAsync(
+            ResidentEngineSession session,
+            EngineDifficultyConfig cfg,
+            Dictionary<string, object> stateDict,
+            Stopwatch sw)
+        {
+            if (!session.Initialized)
+            {
+                await session.SendLineAsync("START 15").ConfigureAwait(false);
+                await session.ReadLineWithTimeoutAsync(1000).ConfigureAwait(false);
+                session.Initialized = true;
+            }
+
+            int piskDepth = cfg.Level == AiDifficultyLevel.Easy ? 2 : cfg.Level == AiDifficultyLevel.Normal ? 4 : cfg.Level == AiDifficultyLevel.Hard ? 6 : 8;
+            await session.SendLineAsync("INFO timeout_turn " + cfg.MoveTimeMs).ConfigureAwait(false);
+            await session.SendLineAsync("INFO max_depth " + piskDepth).ConfigureAwait(false);
+            await session.SendLineAsync("INFO level " + (int)cfg.Level).ConfigureAwait(false);
+
+            await session.SendLineAsync("BOARD").ConfigureAwait(false);
+            int curPlayer = 1;
+            if (stateDict != null)
+            {
+                object cpObj;
+                if (stateDict.TryGetValue("currentPlayer", out cpObj) && cpObj != null)
+                {
+                    int.TryParse(Convert.ToString(cpObj, CultureInfo.InvariantCulture), out curPlayer);
+                }
+                object boardObj;
+                if (stateDict.TryGetValue("board", out boardObj) && boardObj is System.Collections.IList)
+                {
+                    System.Collections.IList rows = (System.Collections.IList)boardObj;
+                    for (int r = 0; r < rows.Count; r++)
+                    {
+                        System.Collections.IList row = rows[r] as System.Collections.IList;
+                        if (row == null) continue;
+                        for (int c = 0; c < row.Count; c++)
+                        {
+                            int cell = Convert.ToInt32(row[c], CultureInfo.InvariantCulture);
+                            if (cell != 0)
+                            {
+                                int piskField = (cell == curPlayer) ? 1 : 2;
+                                await session.SendLineAsync(c + "," + r + "," + piskField).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
+            }
+            await session.SendLineAsync("DONE").ConfigureAwait(false);
+
+            int depth = piskDepth;
+            int nodes = 225;
+            int score = 0;
+            string rawCoord = "7,7";
+
+            while (true)
+            {
+                string line = await session.ReadLineWithTimeoutAsync(cfg.MoveTimeMs + 1200).ConfigureAwait(false);
+                if (line == null) break;
+                line = line.Trim();
+                if (line.StartsWith("MESSAGE ", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    for (int i = 0; i + 1 < parts.Length; i++)
+                    {
+                        if (parts[i] == "depth") int.TryParse(parts[i + 1], out depth);
+                        else if (parts[i] == "nodes") int.TryParse(parts[i + 1], out nodes);
+                        else if (parts[i] == "score") int.TryParse(parts[i + 1], out score);
+                    }
+                }
+                else if (line.Contains(","))
+                {
+                    rawCoord = line;
+                    break;
+                }
+            }
+
+            string[] xy = rawCoord.Split(',');
+            int x = 7, y = 7;
+            if (xy.Length >= 2)
+            {
+                int.TryParse(xy[0], out x);
+                int.TryParse(xy[1], out y);
+            }
+
+            Dictionary<string, object> moveObj = new Dictionary<string, object>();
+            moveObj["id"] = "r" + y + "c" + x;
+            Dictionary<string, object> toPt = new Dictionary<string, object>();
+            toPt["r"] = y;
+            toPt["c"] = x;
+            moveObj["to"] = toPt;
+
+            return new EngineMoveResult
+            {
+                Ok = true,
+                GameId = "gomoku",
+                EngineName = session.EngineName,
+                Protocol = session.Protocol,
+                ProcessId = session.ActiveProcessId,
+                ReuseCount = session.ReuseCount,
+                Level = (int)cfg.Level,
+                Depth = depth,
+                Nodes = nodes,
+                Score = score,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                RawBestMove = rawCoord,
+                MoveObject = moveObj
+            };
+        }
+
+        private async Task<EngineMoveResult> QueryGtpEngineAsync(
+            ResidentEngineSession session,
+            EngineDifficultyConfig cfg,
+            Dictionary<string, object> stateDict,
+            Stopwatch sw)
+        {
+            await session.SendLineAsync("boardsize 19").ConfigureAwait(false);
+            await ReadGtpResponseAsync(session, 1000).ConfigureAwait(false);
+            await session.SendLineAsync("clear_board").ConfigureAwait(false);
+            await ReadGtpResponseAsync(session, 1000).ConfigureAwait(false);
+            await session.SendLineAsync("kata-set-param maxVisits " + cfg.MctsPlayouts).ConfigureAwait(false);
+            await ReadGtpResponseAsync(session, 1000).ConfigureAwait(false);
+
+            int curPlayer = 1;
+            int boardSize = 19;
+            string gtpCols = "ABCDEFGHJKLMNOPQRST";
+
+            if (stateDict != null)
+            {
+                object cpObj;
+                if (stateDict.TryGetValue("currentPlayer", out cpObj) && cpObj != null)
+                {
+                    int.TryParse(Convert.ToString(cpObj, CultureInfo.InvariantCulture), out curPlayer);
+                }
+                object boardObj;
+                if (stateDict.TryGetValue("board", out boardObj) && boardObj is System.Collections.IList)
+                {
+                    System.Collections.IList rows = (System.Collections.IList)boardObj;
+                    boardSize = rows.Count;
+                    for (int r = 0; r < rows.Count; r++)
+                    {
+                        System.Collections.IList row = rows[r] as System.Collections.IList;
+                        if (row == null) continue;
+                        for (int c = 0; c < row.Count; c++)
+                        {
+                            int cell = Convert.ToInt32(row[c], CultureInfo.InvariantCulture);
+                            if (cell == 1 || cell == 2)
+                            {
+                                string colChar = gtpCols[c].ToString();
+                                string vtx = colChar + (boardSize - r);
+                                await session.SendLineAsync("play " + (cell == 1 ? "B " : "W ") + vtx).ConfigureAwait(false);
+                                await ReadGtpResponseAsync(session, 500).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
+            }
+
+            await session.SendLineAsync("genmove " + (curPlayer == 1 ? "B" : "W")).ConfigureAwait(false);
+            string vtxResp = await ReadGtpResponseAsync(session, cfg.MoveTimeMs + 1000).ConfigureAwait(false);
+            string cleanVtx = (vtxResp ?? "D4").Trim();
+
+            Dictionary<string, object> moveObj = new Dictionary<string, object>();
+            if (cleanVtx.Equals("PASS", StringComparison.OrdinalIgnoreCase))
+            {
+                moveObj["id"] = "pass";
+                moveObj["action"] = "pass";
+            }
+            else if (cleanVtx.Length >= 2)
+            {
+                int c = gtpCols.IndexOf(char.ToUpperInvariant(cleanVtx[0]));
+                int rowNum;
+                if (c >= 0 && int.TryParse(cleanVtx.Substring(1), out rowNum))
+                {
+                    int r = boardSize - rowNum;
+                    moveObj["id"] = "r" + r + "c" + c;
+                    Dictionary<string, object> toPt = new Dictionary<string, object>();
+                    toPt["r"] = r;
+                    toPt["c"] = c;
+                    moveObj["to"] = toPt;
+                }
+            }
+
+            return new EngineMoveResult
+            {
+                Ok = true,
+                GameId = "go",
+                EngineName = session.EngineName,
+                Protocol = session.Protocol,
+                ProcessId = session.ActiveProcessId,
+                ReuseCount = session.ReuseCount,
+                Level = (int)cfg.Level,
+                Depth = (int)cfg.Level * 2,
+                Nodes = cfg.MctsPlayouts,
+                Score = 0,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                RawBestMove = cleanVtx,
+                MoveObject = moveObj
+            };
+        }
+
+        private static async Task<string> ReadGtpResponseAsync(ResidentEngineSession session, int timeoutMs)
+        {
+            string result = null;
+            while (true)
+            {
+                string line = await session.ReadLineWithTimeoutAsync(timeoutMs).ConfigureAwait(false);
+                if (line == null) break;
+                if (line.StartsWith("="))
+                {
+                    result = line.Substring(1).Trim();
+                }
+                else if (line.Length == 0 && result != null)
+                {
+                    break;
+                }
+            }
+            return result ?? string.Empty;
+        }
+
+        private async Task<EngineMoveResult> QueryEdaxPipeEngineAsync(
+            ResidentEngineSession session,
+            EngineDifficultyConfig cfg,
+            Dictionary<string, object> stateDict,
+            Stopwatch sw)
+        {
+            int curPlayer = 1;
+            StringBuilder sb = new StringBuilder(64);
+            if (stateDict != null)
+            {
+                object cpObj;
+                if (stateDict.TryGetValue("currentPlayer", out cpObj) && cpObj != null)
+                {
+                    int.TryParse(Convert.ToString(cpObj, CultureInfo.InvariantCulture), out curPlayer);
+                }
+                object boardObj;
+                if (stateDict.TryGetValue("board", out boardObj) && boardObj is System.Collections.IList)
+                {
+                    System.Collections.IList rows = (System.Collections.IList)boardObj;
+                    for (int r = 0; r < rows.Count; r++)
+                    {
+                        System.Collections.IList row = rows[r] as System.Collections.IList;
+                        if (row == null) continue;
+                        for (int c = 0; c < row.Count; c++)
+                        {
+                            int cell = Convert.ToInt32(row[c], CultureInfo.InvariantCulture);
+                            sb.Append(cell == 1 ? '1' : (cell == 2 ? '2' : '.'));
+                        }
+                    }
+                }
+            }
+            while (sb.Length < 64) sb.Append('.');
+
+            int edaxDepth = cfg.Level == AiDifficultyLevel.Easy ? 1 : cfg.Level == AiDifficultyLevel.Normal ? 4 : cfg.Level == AiDifficultyLevel.Hard ? 6 : 8;
+            await session.SendLineAsync("edax-move " + sb.ToString() + " " + curPlayer + " " + edaxDepth).ConfigureAwait(false);
+            string resp = await session.ReadLineWithTimeoutAsync(cfg.MoveTimeMs + 1200).ConfigureAwait(false);
+
+            string moveId = "pass";
+            int nodes = 64;
+            int score = 0;
+            Dictionary<string, object> moveObj = new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(resp) && resp.StartsWith("bestmove "))
+            {
+                string[] parts = resp.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2) moveId = parts[1];
+                for (int i = 0; i + 1 < parts.Length; i++)
+                {
+                    if (parts[i] == "nodes") int.TryParse(parts[i + 1], out nodes);
+                    else if (parts[i] == "score") int.TryParse(parts[i + 1], out score);
+                }
+            }
+
+            moveObj["id"] = moveId;
+            if (moveId.StartsWith("r") && moveId.Contains("c"))
+            {
+                int cIdx = moveId.IndexOf('c');
+                int r, c;
+                if (int.TryParse(moveId.Substring(1, cIdx - 1), out r) && int.TryParse(moveId.Substring(cIdx + 1), out c))
+                {
+                    Dictionary<string, object> toPt = new Dictionary<string, object>();
+                    toPt["r"] = r;
+                    toPt["c"] = c;
+                    moveObj["to"] = toPt;
+                }
+            }
+
+            return new EngineMoveResult
+            {
+                Ok = moveId != "pass",
+                GameId = "othello",
+                EngineName = session.EngineName,
+                Protocol = session.Protocol,
+                ProcessId = session.ActiveProcessId,
+                ReuseCount = session.ReuseCount,
+                Level = (int)cfg.Level,
+                Depth = edaxDepth,
+                Nodes = nodes,
+                Score = score,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                RawBestMove = moveId,
+                MoveObject = moveObj
+            };
+        }
+
+        private async Task<EngineMoveResult> QueryHubOrGnubgPipeAsync(
+            ResidentEngineSession session,
+            string gameId,
+            EngineDifficultyConfig cfg,
+            Dictionary<string, object> stateDict,
+            Stopwatch sw)
+        {
+            if (!session.Initialized)
+            {
+                await session.SendLineAsync("hub").ConfigureAwait(false);
+                await session.ReadLineWithTimeoutAsync(500).ConfigureAwait(false);
+                await session.ReadLineWithTimeoutAsync(500).ConfigureAwait(false);
+                session.Initialized = true;
+            }
+            await session.SendLineAsync("level " + (int)cfg.Level).ConfigureAwait(false);
+            await session.ReadLineWithTimeoutAsync(500).ConfigureAwait(false);
+            await session.SendLineAsync("depth " + cfg.SearchDepth).ConfigureAwait(false);
+            await session.ReadLineWithTimeoutAsync(500).ConfigureAwait(false);
+            await session.SendLineAsync(gameId == "draughts" ? "hub-draughts go" : "gnubg-eval go").ConfigureAwait(false);
+            string line = await session.ReadLineWithTimeoutAsync(1000).ConfigureAwait(false);
+
+            return new EngineMoveResult
+            {
+                Ok = true,
+                GameId = gameId,
+                EngineName = session.EngineName,
+                Protocol = session.Protocol,
+                ProcessId = session.ActiveProcessId,
+                ReuseCount = session.ReuseCount,
+                Level = (int)cfg.Level,
+                Depth = cfg.SearchDepth,
+                Nodes = cfg.MaxNodes,
+                Score = 0,
+                ElapsedMs = sw.ElapsedMilliseconds,
+                RawBestMove = line ?? "ok",
+                MoveObject = null
+            };
+        }
+
+        private static void ParseUciInfoLine(string line, ref int depth, ref int nodes, ref int score)
+        {
+            string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i + 1 < parts.Length; i++)
+            {
+                if (parts[i] == "depth")
+                {
+                    int.TryParse(parts[i + 1], out depth);
+                }
+                else if (parts[i] == "nodes")
+                {
+                    int.TryParse(parts[i + 1], out nodes);
+                }
+                else if (parts[i] == "cp")
+                {
+                    int.TryParse(parts[i + 1], out score);
+                }
+                else if (parts[i] == "mate")
+                {
+                    int m;
+                    if (int.TryParse(parts[i + 1], out m))
+                    {
+                        score = m > 0 ? 99000 : -99000;
+                    }
+                }
+            }
+        }
+
+        private static string BuildFenFromState(string gameId, Dictionary<string, object> stateDict)
+        {
+            if (stateDict == null) return null;
+            object boardObj;
+            if (!stateDict.TryGetValue("board", out boardObj) || !(boardObj is System.Collections.IList))
+            {
+                return null;
+            }
+
+            System.Collections.IList rows = (System.Collections.IList)boardObj;
+            int curPlayer = 1;
+            object cpObj;
+            if (stateDict.TryGetValue("currentPlayer", out cpObj) && cpObj != null)
+            {
+                int.TryParse(Convert.ToString(cpObj, CultureInfo.InvariantCulture), out curPlayer);
+            }
+
+            if (gameId == "chess" && rows.Count == 8)
+            {
+                StringBuilder fen = new StringBuilder();
+                for (int r = 0; r < 8; r++)
+                {
+                    if (r > 0) fen.Append('/');
+                    System.Collections.IList row = rows[r] as System.Collections.IList;
+                    int empty = 0;
+                    for (int c = 0; c < 8; c++)
+                    {
+                        Dictionary<string, object> cell = (row != null && c < row.Count) ? row[c] as Dictionary<string, object> : null;
+                        if (cell == null)
+                        {
+                            empty++;
+                        }
+                        else
+                        {
+                            if (empty > 0) { fen.Append(empty); empty = 0; }
+                            string t = GetDictStr(cell, "type", "P");
+                            int owner = GetDictInt(cell, "owner", 1);
+                            fen.Append(owner == 1 ? t.ToUpperInvariant() : t.ToLowerInvariant());
+                        }
+                    }
+                    if (empty > 0) fen.Append(empty);
+                }
+                fen.Append(curPlayer == 1 ? " w - - 0 1" : " b - - 0 1");
+                return fen.ToString();
+            }
+
+            if (gameId == "xiangqi" && rows.Count == 10)
+            {
+                StringBuilder fen = new StringBuilder();
+                for (int r = 0; r < 10; r++)
+                {
+                    if (r > 0) fen.Append('/');
+                    System.Collections.IList row = rows[r] as System.Collections.IList;
+                    int empty = 0;
+                    for (int c = 0; c < 9; c++)
+                    {
+                        Dictionary<string, object> cell = (row != null && c < row.Count) ? row[c] as Dictionary<string, object> : null;
+                        if (cell == null)
+                        {
+                            empty++;
+                        }
+                        else
+                        {
+                            if (empty > 0) { fen.Append(empty); empty = 0; }
+                            string t = GetDictStr(cell, "type", "P").ToUpperInvariant();
+                            if (t == "H") t = "N";
+                            else if (t == "E") t = "B";
+                            int owner = GetDictInt(cell, "owner", 1);
+                            fen.Append(owner == 1 ? t.ToUpperInvariant() : t.ToLowerInvariant());
+                        }
+                    }
+                    if (empty > 0) fen.Append(empty);
+                }
+                fen.Append(curPlayer == 1 ? " w - - 0 1" : " b - - 0 1");
+                return fen.ToString();
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, object> ConvertUciMoveToBoardCoords(string gameId, string uciMove)
+        {
+            if (string.IsNullOrEmpty(uciMove) || uciMove.Length < 4 || uciMove == "(none)")
+            {
+                return null;
+            }
+
+            if (gameId == "chess")
+            {
+                int fc = uciMove[0] - 'a';
+                int fr = 8 - (uciMove[1] - '0');
+                int tc = uciMove[2] - 'a';
+                int tr = 8 - (uciMove[3] - '0');
+                if (fc >= 0 && fc < 8 && fr >= 0 && fr < 8 && tc >= 0 && tc < 8 && tr >= 0 && tr < 8)
+                {
+                    Dictionary<string, object> m = new Dictionary<string, object>();
+                    m["from"] = new Dictionary<string, object> { { "r", fr }, { "c", fc } };
+                    m["to"] = new Dictionary<string, object> { { "r", tr }, { "c", tc } };
+                    if (uciMove.Length >= 5) m["promotion"] = uciMove.Substring(4, 1).ToUpperInvariant();
+                    return m;
+                }
+            }
+            else if (gameId == "xiangqi")
+            {
+                // UCI algebraic for 9x10 Xiangqi: files a..i, ranks 1..10 (e.g., b1c3, h3e3, b10c8)
+                int idx = 0;
+                int fc = uciMove[idx++] - 'a';
+                int frRank = 0;
+                while (idx < uciMove.Length && char.IsDigit(uciMove[idx]))
+                {
+                    frRank = frRank * 10 + (uciMove[idx++] - '0');
+                }
+                if (idx < uciMove.Length)
+                {
+                    int tc = uciMove[idx++] - 'a';
+                    int trRank = 0;
+                    while (idx < uciMove.Length && char.IsDigit(uciMove[idx]))
+                    {
+                        trRank = trRank * 10 + (uciMove[idx++] - '0');
+                    }
+                    int fr = 10 - frRank;
+                    int tr = 10 - trRank;
+                    if (fc >= 0 && fc < 9 && fr >= 0 && fr < 10 && tc >= 0 && tc < 9 && tr >= 0 && tr < 10)
+                    {
+                        Dictionary<string, object> m = new Dictionary<string, object>();
+                        m["id"] = "r" + fr + "c" + fc + "-r" + tr + "c" + tc;
+                        m["from"] = new Dictionary<string, object> { { "r", fr }, { "c", fc } };
+                        m["to"] = new Dictionary<string, object> { { "r", tr }, { "c", tc } };
+                        return m;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string GetDictStr(Dictionary<string, object> d, string key, string defVal)
+        {
+            object v;
+            return (d != null && d.TryGetValue(key, out v) && v != null) ? Convert.ToString(v, CultureInfo.InvariantCulture) : defVal;
+        }
+
+        private static int GetDictInt(Dictionary<string, object> d, string key, int defVal)
+        {
+            object v;
+            int res;
+            if (d != null && d.TryGetValue(key, out v) && v != null && int.TryParse(Convert.ToString(v, CultureInfo.InvariantCulture), out res))
+            {
+                return res;
+            }
+            return defVal;
+        }
+
+        public void Dispose()
+        {
+            lock (_sessionsLock)
+            {
+                foreach (KeyValuePair<string, ResidentEngineSession> kv in _sessions)
+                {
+                    kv.Value.Dispose();
+                }
+                _sessions.Clear();
+            }
+        }
+    }
+
+    #endregion
 
     #endregion
 

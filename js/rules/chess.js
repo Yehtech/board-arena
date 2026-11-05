@@ -1085,8 +1085,52 @@
     }
 
     // Bishop pair bonus
-    if (myBishops >= 2) score += 32;
-    if (oppBishops >= 2) score -= 32;
+    if (myBishops >= 2) score += 35;
+    if (oppBishops >= 2) score -= 35;
+
+    // Passed pawns, Rook open files, and King pawn shield
+    const pawnFiles = { 1: [0, 0, 0, 0, 0, 0, 0, 0], 2: [0, 0, 0, 0, 0, 0, 0, 0] };
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const pc = board[r][c];
+        if (pc && pc.type === 'P') pawnFiles[pc.owner][c]++;
+      }
+    }
+
+    const PASSED_PAWN_BONUS = [0, 95, 65, 40, 22, 12, 6, 0];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const pc = board[r][c];
+        if (!pc) continue;
+        const sign = pc.owner === me ? 1 : -1;
+        const other = pc.owner === 1 ? 2 : 1;
+        const relR = pc.owner === 1 ? r : 7 - r;
+
+        if (pc.type === 'P') {
+          // Doubled pawn penalty
+          if (pawnFiles[pc.owner][c] > 1) score -= sign * 12;
+          // Passed pawn check
+          let passed = true;
+          const step = pc.owner === 1 ? -1 : 1;
+          for (let sr = r + step; sr >= 0 && sr < ROWS; sr += step) {
+            for (let sc = Math.max(0, c - 1); sc <= Math.min(7, c + 1); sc++) {
+              const blocker = board[sr][sc];
+              if (blocker && blocker.owner === other && blocker.type === 'P') {
+                passed = false;
+                break;
+              }
+            }
+            if (!passed) break;
+          }
+          if (passed) score += sign * PASSED_PAWN_BONUS[relR];
+        } else if (pc.type === 'R') {
+          if (pawnFiles[pc.owner][c] === 0) {
+            score += sign * (pawnFiles[other][c] === 0 ? 24 : 14);
+          }
+          if (relR === 1) score += sign * 22; // 7th rank rook
+        }
+      }
+    }
 
     // Center control / light mobility signal on d4/e4/d5/e5
     for (let r = 3; r <= 4; r++) {
@@ -1096,8 +1140,8 @@
       }
     }
 
-    if (state.inCheck === opp) score += 35;
-    else if (state.inCheck === me) score -= 35;
+    if (state.inCheck === opp) score += 45;
+    else if (state.inCheck === me) score -= 45;
 
     return score;
   }

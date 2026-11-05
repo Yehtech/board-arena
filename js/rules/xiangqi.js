@@ -728,6 +728,11 @@
 
     let score = 0;
     const board = state.board;
+    const counts = {
+      1: { A: 0, E: 0, R: 0 },
+      2: { A: 0, E: 0, R: 0 }
+    };
+    const generals = { 1: null, 2: null };
 
     for (let r = 0; r < ROWS; r++) {
       const row = board[r];
@@ -737,11 +742,47 @@
         const val = BASE_VALUES[cell.type] + piecePositionalScore(cell, r, c);
         if (cell.owner === me) score += val;
         else score -= val;
+        if (cell.type === 'K') generals[cell.owner] = { r: r, c: c };
+        else if (cell.type === 'A' || cell.type === 'E' || cell.type === 'R') {
+          counts[cell.owner][cell.type]++;
+        }
       }
     }
 
-    if (state.inCheck === opp) score += 55;
-    else if (state.inCheck === me) score -= 55;
+    // Palace defense synergy (雙仕雙相) vs broken palace penalty when opponent has Chariots
+    for (let p = 1; p <= 2; p++) {
+      const sign = p === me ? 1 : -1;
+      const other = p === 1 ? 2 : 1;
+      if (counts[p].A === 2) score += sign * 35;
+      if (counts[p].E === 2) score += sign * 30;
+      if (counts[p].A === 0 && counts[other].R > 0) score -= sign * 65;
+
+      // Hollow / Central Cannon alignment with enemy General
+      const oppKing = generals[other];
+      if (oppKing) {
+        const kc = oppKing.c;
+        const kr = oppKing.r;
+        const step = kr < 5 ? 1 : -1;
+        let screens = 0;
+        let sr = kr + step;
+        while (sr >= 0 && sr < ROWS) {
+          const pc = board[sr][kc];
+          if (pc) {
+            if (pc.owner === p && pc.type === 'C') {
+              if (screens === 0) score += sign * 85; // Hollow Cannon (空頭炮)!
+              else if (screens === 1) score += sign * 50; // Central Cannon check/pin!
+              break;
+            }
+            screens++;
+            if (screens > 2) break;
+          }
+          sr += step;
+        }
+      }
+    }
+
+    if (state.inCheck === opp) score += 75;
+    else if (state.inCheck === me) score -= 75;
 
     return score;
   }

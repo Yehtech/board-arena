@@ -309,6 +309,93 @@ namespace BoardArenaTests
                         "DELETE /api/me deletes account and anonymizes historical game records",
                         delMe.StatusCode == 200 && blackAnonName == "[Deleted Player]",
                         "blackName=" + blackAnonName);
+
+                    // Test 2.11: Resident Native CLI AI Engines Status (/api/ai/engines)
+                    HttpResponseResult engStatus = SendRequest("GET", baseUrl + "/api/ai/engines", null, null);
+                    System.Collections.IList engList = engStatus.Data.ContainsKey("engines") ? engStatus.Data["engines"] as System.Collections.IList : null;
+                    AssertTrue(
+                        "GET /api/ai/engines lists all 8 native protocol engines (UCI/USI/GTP/Piskvork/Hub/Pipe)",
+                        engStatus.StatusCode == 200 && engList != null && engList.Count == 8,
+                        "count=" + (engList != null ? engList.Count : 0));
+
+                    // Test 2.12: Resident UCI Engine (Stockfish / Fairy-Stockfish) 4-Tier Scaling & Process Reuse
+                    HttpResponseResult chessLv1 = SendRequest("POST", baseUrl + "/api/ai/move", null, new Dictionary<string, object>
+                    {
+                        { "gameId", "chess" },
+                        { "level", 1 }
+                    });
+                    HttpResponseResult chessLv4 = SendRequest("POST", baseUrl + "/api/ai/move", null, new Dictionary<string, object>
+                    {
+                        { "gameId", "chess" },
+                        { "level", 4 }
+                    });
+                    int pid1 = Convert.ToInt32(chessLv1.Data["processId"], CultureInfo.InvariantCulture);
+                    int pid4 = Convert.ToInt32(chessLv4.Data["processId"], CultureInfo.InvariantCulture);
+                    int reuse4 = Convert.ToInt32(chessLv4.Data["reuseCount"], CultureInfo.InvariantCulture);
+                    int d1 = Convert.ToInt32(chessLv1.Data["depth"], CultureInfo.InvariantCulture);
+                    int d4 = Convert.ToInt32(chessLv4.Data["depth"], CultureInfo.InvariantCulture);
+                    AssertTrue(
+                        "UCI Chess Engine keeps Resident Process in RAM (same PID) & scales Lv1->Lv4 depth",
+                        chessLv1.StatusCode == 200 && chessLv4.StatusCode == 200 && pid1 > 0 && pid1 == pid4 && reuse4 >= 2 && d4 > d1,
+                        string.Format(CultureInfo.InvariantCulture, "PID={0} (reuse={1}), Lv1 depth={2} -> Lv4 depth={3}, move={4}", pid4, reuse4, d1, d4, chessLv4.Data["rawMove"]));
+
+                    // Test 2.13: 8-Game x 4-Level Resident Engine Response Time & Depth Verification (32 Queries)
+                    string[] allGames = new string[] { "othello", "xiangqi", "go", "gomoku", "draughts", "chess", "shogi", "backgammon" };
+                    int[][] othelloStart = new int[8][];
+                    for (int r = 0; r < 8; r++) othelloStart[r] = new int[8];
+                    othelloStart[3][3] = 2; othelloStart[3][4] = 1; othelloStart[4][3] = 1; othelloStart[4][4] = 2;
+
+                    int[][] gomokuMid = new int[15][];
+                    for (int r = 0; r < 15; r++) gomokuMid[r] = new int[15];
+                    gomokuMid[7][7] = 1; gomokuMid[7][8] = 2; gomokuMid[8][8] = 1; gomokuMid[6][6] = 2; gomokuMid[8][6] = 1; gomokuMid[8][7] = 2;
+
+                    int all32Ok = 0;
+                    Console.WriteLine("  --------------------------------------------------------------------");
+                    Console.WriteLine("  [Resident Pipe AI Engine 8-Game x 4-Level Response Time Telemetry]");
+                    for (int gIdx = 0; gIdx < allGames.Length; gIdx++)
+                    {
+                        string gName = allGames[gIdx];
+                        // Warm up resident pipe once (simulating engine already resident in RAM during gameplay)
+                        SendRequest("POST", baseUrl + "/api/ai/move", null, new Dictionary<string, object>
+                        {
+                            { "gameId", gName },
+                            { "level", 1 }
+                        });
+
+                        StringBuilder rowLog = new StringBuilder();
+                        rowLog.AppendFormat(CultureInfo.InvariantCulture, "    {0,-11}: ", gName);
+                        for (int lv = 1; lv <= 4; lv++)
+                        {
+                            Dictionary<string, object> payload = new Dictionary<string, object>
+                            {
+                                { "gameId", gName },
+                                { "level", lv }
+                            };
+                            if (gName == "othello")
+                            {
+                                payload["state"] = new Dictionary<string, object> { { "currentPlayer", 1 }, { "board", othelloStart } };
+                            }
+                            else if (gName == "gomoku")
+                            {
+                                payload["state"] = new Dictionary<string, object> { { "currentPlayer", 1 }, { "board", gomokuMid } };
+                            }
+
+                            HttpResponseResult res = SendRequest("POST", baseUrl + "/api/ai/move", null, payload);
+                            bool ok = res.StatusCode == 200 && res.Data.ContainsKey("ok") && Convert.ToBoolean(res.Data["ok"], CultureInfo.InvariantCulture);
+                            if (ok) all32Ok++;
+                            int d = res.Data.ContainsKey("depth") ? Convert.ToInt32(res.Data["depth"], CultureInfo.InvariantCulture) : 0;
+                            int ms = res.Data.ContainsKey("elapsedMs") ? Convert.ToInt32(res.Data["elapsedMs"], CultureInfo.InvariantCulture) : 0;
+                            int n = res.Data.ContainsKey("nodes") ? Convert.ToInt32(res.Data["nodes"], CultureInfo.InvariantCulture) : 0;
+                            rowLog.AppendFormat(CultureInfo.InvariantCulture, "Lv{0}={1}ms(d={2},n={3}){4}", lv, ms, d, n, lv < 4 ? " | " : "");
+                        }
+                        Console.WriteLine(rowLog.ToString());
+                    }
+                    Console.WriteLine("  --------------------------------------------------------------------");
+
+                    AssertTrue(
+                        "All 8 Resident Engines x 4 Difficulty Levels (32/32 queries) respond via async RAM pipes",
+                        all32Ok == 32,
+                        "passed=" + all32Ok + "/32");
                 }
             }
             finally

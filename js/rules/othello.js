@@ -366,21 +366,74 @@
 
     const myMoves = countLegalMoves(board, me);
     const oppMoves = countLegalMoves(board, opp);
-    const mobilityScore = (myMoves - oppMoves) * 8;
+    const mobilityScore = (myMoves - oppMoves) * 11;
+
+    // Frontier discs (discs adjacent to at least one empty square are vulnerable to being flipped)
+    let myFrontier = 0;
+    let oppFrontier = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = board[r][c];
+        if (cell === 0) continue;
+        let isFrontier = false;
+        for (let d = 0; d < 8; d++) {
+          const nr = r + DIRS[d][0];
+          const nc = c + DIRS[d][1];
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === 0) {
+            isFrontier = true;
+            break;
+          }
+        }
+        if (isFrontier) {
+          if (cell === me) myFrontier++;
+          else oppFrontier++;
+        }
+      }
+    }
+    const frontierScore = (oppFrontier - myFrontier) * 5;
+
+    // Corner-anchored edge stability (contiguous chains from occupied corners along the 4 edges)
+    let stabilityScore = 0;
+    const cornerCoords = [
+      { r: 0, c: 0, dirs: [[0, 1], [1, 0]] },
+      { r: 0, c: 7, dirs: [[0, -1], [1, 0]] },
+      { r: 7, c: 0, dirs: [[0, 1], [-1, 0]] },
+      { r: 7, c: 7, dirs: [[0, -1], [-1, 0]] }
+    ];
+    for (let k = 0; k < 4; k++) {
+      const cc = cornerCoords[k];
+      const owner = board[cc.r][cc.c];
+      if (owner !== 0) {
+        const sign = owner === me ? 1 : -1;
+        for (let d = 0; d < 2; d++) {
+          const dr = cc.dirs[d][0];
+          const dc = cc.dirs[d][1];
+          let sr = cc.r + dr;
+          let sc = cc.c + dc;
+          let steps = 0;
+          while (steps < 6 && board[sr][sc] === owner) {
+            stabilityScore += sign * 16;
+            sr += dr;
+            sc += dc;
+            steps++;
+          }
+        }
+      }
+    }
 
     const totalDiscs = myDiscs + oppDiscs;
     let endgameScore = 0;
-    if (totalDiscs >= 52) {
+    if (totalDiscs >= 50) {
       const empties = 64 - totalDiscs;
-      const discWeight = 14 + (totalDiscs - 52) * 2;
+      const discWeight = 14 + (totalDiscs - 50) * 3;
       endgameScore += (myDiscs - oppDiscs) * discWeight;
       // Disc parity: side moving on odd remaining empty squares gets the final move advantage
       const oddEmpties = (empties & 1) === 1;
-      const parityFavorsCurrent = oddEmpties ? 14 : -14;
+      const parityFavorsCurrent = oddEmpties ? 16 : -16;
       endgameScore += state.currentPlayer === me ? parityFavorsCurrent : -parityFavorsCurrent;
     }
 
-    return posScore + mobilityScore + endgameScore;
+    return posScore + mobilityScore + frontierScore + stabilityScore + endgameScore;
   }
 
   function canSelectSource(state, source, player) {

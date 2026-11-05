@@ -351,9 +351,19 @@
             }
           }
 
+          // Penalize self-atari (moving into 1 liberty without capturing)
+          let isSelfAtari = false;
+          if (emptyNeighbors === 0 && !hasMultiLibFriend) {
+            isSelfAtari = true;
+          } else if (emptyNeighbors === 1 && friendGroupIds.length === 0) {
+            isSelfAtari = true;
+          }
+
           let priority = 0;
           if (likelyOwnEye) {
             priority = -500;
+          } else if (isSelfAtari) {
+            priority = -320;
           } else {
             if (savesAtariCount > 0 && (emptyNeighbors >= 2 || hasMultiLibFriend)) {
               priority += 350 + savesAtariCount * 60;
@@ -377,6 +387,9 @@
               to: { r: r, c: c },
               isCapture: false,
               captures: [],
+              priority: priority,
+              likelyOwnEye: likelyOwnEye,
+              isSelfAtari: isSelfAtari,
               notation: GO_COLS[c] + (size - r)
             }
           });
@@ -411,6 +424,7 @@
               to: { r: r, c: c },
               isCapture: true,
               captures: captures,
+              priority: priority,
               notation: GO_COLS[c] + (size - r)
             }
           });
