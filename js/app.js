@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.3.0
+// Changes: Pre-load Fairy-Stockfish for engine-backed matches and label the bot name
+// 修改: 使用 Fairy-Stockfish 的對局於開局時預先載入引擎，並在電腦名稱標示引擎
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.2.0
 // Changes: Merge async AI move (chooseMoveAsync, native engine bridge only when local server online)
 // 修改: 合併八大棋藝2 的非同步電腦走棋；只有連上本機伺服器才啟用原生引擎
@@ -626,8 +632,12 @@
 
     const user = BoardArena.Client.getCurrentUser();
     const humanName = user ? user.displayName : isEn() ? 'Guest Player' : '訪客棋士';
+    // 西洋棋／象棋／將棋的困難與大師難度，在支援的瀏覽器改用 Fairy-Stockfish 引擎
+    const usesEngine = Boolean(BoardArena.FSF && BoardArena.FSF.shouldUseEngine(gameId, lvInfo.id));
+    if (usesEngine) BoardArena.FSF.warmUp(gameId, lvInfo.id);
     const botName =
-      (isEn() ? 'Computer AI (' + lvInfo.en + ')' : '電腦對手（' + lvInfo.zh + '）');
+      (isEn() ? 'Computer AI (' + lvInfo.en + ')' : '電腦對手（' + lvInfo.zh + '）') +
+      (usesEngine ? ' · Fairy-Stockfish' : '');
 
     const side = humanSide === 2 ? 2 : 1;
     stateStore.match = {

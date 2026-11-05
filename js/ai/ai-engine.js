@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-05
+// Version: v1.1.0
+// Changes: Raise Hard/Master depth caps so iterative deepening uses the full time budget (master ~950ms)
+// 修改: 放寬困難／大師的搜尋深度上限，讓迭代加深用滿時間預算（大師約 950 毫秒），棋力大幅提升
+// ============================================
 /**
  * Classic Board Arena — Unified 8-Game AI Engine (4 Distinct Skill Tiers: Easy / Normal / Hard / Master)
  * Supports:
@@ -84,13 +90,14 @@
       tieMargin: 0,
       noiseProb: 0.0,
       useOpeningBook: true,
+      // 深度上限放寬，實際由 timeBudgetMs 以迭代加深控制（時間到即採用上一層完整結果）
       depthByGame: {
-        gomoku: 4,
-        othello: 4,
-        draughts: 4,
-        xiangqi: 3,
-        chess: 3,
-        shogi: 3,
+        gomoku: 5,
+        othello: 6,
+        draughts: 6,
+        xiangqi: 5,
+        chess: 5,
+        shogi: 5,
         go: 3,
         backgammon: 3
       }
@@ -107,13 +114,14 @@
       tieMargin: 0,
       noiseProb: 0.0,
       useOpeningBook: true,
+      // 深度上限放寬，實際由 timeBudgetMs 以迭代加深控制（圍棋為固定深度搜尋，維持 4）
       depthByGame: {
-        gomoku: 6,
-        othello: 6,
-        draughts: 6,
-        xiangqi: 4,
-        chess: 4,
-        shogi: 4,
+        gomoku: 8,
+        othello: 12,
+        draughts: 12,
+        xiangqi: 12,
+        chess: 12,
+        shogi: 10,
         go: 4,
         backgammon: 4
       }

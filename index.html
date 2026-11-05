@@ -8,6 +8,34 @@
   <link rel="alternate" hreflang="en" href="./index.html?lang=en" />
   <title>世界八大經典棋藝對戰館 | 擬真棋盤・單人對電腦</title>
   <link rel="stylesheet" href="./css/arena.css" />
+  <!-- 跨來源隔離：註冊 coi-sw.js，讓多執行緒 Fairy-Stockfish 引擎可在 GitHub Pages 執行（首次造訪會自動重新整理一次） -->
+  <script>
+    (function () {
+      if (window.crossOriginIsolated || !window.isSecureContext || !('serviceWorker' in navigator)) return;
+      var KEY = 'CBA_COI_RELOADED';
+      function reloadOnce() {
+        try {
+          if (sessionStorage.getItem(KEY) === '1') return;
+          sessionStorage.setItem(KEY, '1');
+        } catch (e) {
+          return;
+        }
+        location.reload();
+      }
+      // 只在第一次安裝（頁面尚未受控）時重新整理，避免日後 SW 更新時打斷對局
+      if (!navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('controllerchange', reloadOnce);
+      }
+      navigator.serviceWorker
+        .register('./coi-sw.js')
+        .then(function (reg) {
+          if (reg.active && !navigator.serviceWorker.controller) reloadOnce();
+        })
+        .catch(function (err) {
+          console.warn('[COI] service worker registration failed; strong engine disabled:', err);
+        });
+    })();
+  </script>
 </head>
 <body>
   <!-- Sticky Studio & Platform Header -->
@@ -230,6 +258,7 @@
 
   <!-- 4-Tier Traditional AI, 2x Retina Renderer, Network/Auth Client & Controller -->
   <script src="./js/ai/ai-engine.js"></script>
+  <script src="./js/ai/fsf-bridge.js"></script>
   <script src="./js/render/board-renderer.js"></script>
   <script src="./js/net/arena-client.js"></script>
   <script src="./js/app.js"></script>

@@ -21,7 +21,22 @@
 
 規則測試：用瀏覽器開啟 `tests/run-all-rules-tests.html`；AI 難度驗證：`tests/verify-ai-levels.html`。
 
-**原生棋力引擎（選用，僅限本機）**：在本機執行 `start_multiplayer_server.bat` 啟動伺服器後，電腦對手會改用 `engines/` 資料夾內的原生引擎（例如 Fairy-Stockfish、Edax）。引擎執行檔不放在 repo 內，需自行下載；公開網站一律使用瀏覽器內建 AI。
+## 電腦對手
+
+| 棋種 | 簡單／普通 | 困難／大師 |
+|---|---|---|
+| 西洋棋、中國象棋、日本將棋 | 內建 JS AI | **Fairy-Stockfish**（WebAssembly，在玩家瀏覽器內執行） |
+| 其他五種 | 內建 JS AI | 內建 JS AI（迭代加深，大師每步約 1 秒） |
+
+- Fairy-Stockfish 需要瀏覽器支援「跨來源隔離」。網站透過 `coi-sw.js`（Service Worker）補上必要標頭，**第一次造訪會自動重新整理一次**。
+- 不支援的環境（舊瀏覽器、直接用 file:// 開檔、記憶體不足）會自動改用內建 AI，不影響遊玩。
+- 直接開 `index.html` 不會啟用引擎；要在本機測試引擎，請用本機 HTTP 伺服器（localhost）開啟。
+
+**原生棋力引擎（選用，僅限本機）**：在本機執行 `start_multiplayer_server.bat` 啟動伺服器後，電腦對手會改用 `engines/` 資料夾內的原生引擎（例如 Fairy-Stockfish、Edax）。引擎執行檔不放在 repo 內，需自行下載。
+
+## 授權
+
+- `js/vendor/fairy-stockfish/`：[Fairy-Stockfish](https://github.com/fairy-stockfish/fairy-stockfish.wasm) WebAssembly 版（npm `fairy-stockfish-nnue.wasm` 1.1.12），GPL-3.0，授權全文與作者名單見同資料夾 `Copying.txt`、`AUTHORS`。原始碼：https://github.com/fairy-stockfish/fairy-stockfish.wasm
 
 ## 功能開關
 
