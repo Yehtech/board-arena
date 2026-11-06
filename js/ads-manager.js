@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.2.0
+// Changes: Ad copy moved to dictionaries; removed language arguments
+// 修改: 廣告文案移到字典；移除語言參數
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Add ADS_MASTER_SWITCH kill switch (default off); overrides stored config, rewarded hint granted without ad when off
@@ -16,6 +22,11 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+
+  /** 取得目前語言的文字 */
+  function T(key) {
+    return BoardArena.I18N.t(key);
+  }
   const STORAGE_KEY_CMP = 'CBA_GDPR_CMP_V1';
   const STORAGE_KEY_CFG = 'CBA_AD_REMOTE_CONFIG_V1';
 
@@ -83,7 +94,7 @@
     activeRatedMatchLocked = !!isPlayingMatch;
   }
 
-  function renderDisplaySlot(containerEl, placement, lang) {
+  function renderDisplaySlot(containerEl, placement) {
     if (!containerEl) return;
     if (!isAdsEnabled()) {
       containerEl.innerHTML = '';
@@ -102,42 +113,8 @@
     containerEl.style.display = 'block';
     metrics.displayImpressions++;
 
-    const isEn = lang === 'en';
-    const sponsorCopy = {
-      lobby: isEn
-        ? {
-            tag: 'AdSense Display · Lobby Slot (728×90)',
-            title: 'Master Kaya Wood Goban & Staunton Chess Craftsmanship',
-            sub: 'Non-intrusive sponsor slot · Zero popups during active matches · Supports free global servers'
-          }
-        : {
-            tag: 'Google AdSense 展示廣告版位 · 大廳橫幅 (728×90)',
-            title: '【棋藝贊助版位】百年本榧木棋盤與史湯頓實木西洋棋具工坊・全球免運',
-            sub: '非干擾式廣告元件（遠端開關可控・對局進行中絕不遮擋棋盤）'
-          },
-      academy: isEn
-        ? {
-            tag: 'AdSense Display · Academy Content Slot',
-            title: 'Interactive Xiangqi, Shogi & Go Endgame Masterclass',
-            sub: 'Ad slot rendered only on rules & tutorial pages'
-          }
-        : {
-            tag: 'Google AdSense 展示廣告版位 · 規則與教學專欄',
-            title: '【線上棋院專欄贊助】象棋殘局殺法、將棋詰將棋與圍棋死活題系統課',
-            sub: '僅顯示於規則與教學內容頁，支援 Google AdSense <ins class="adsbygoogle"> 即插即換'
-          },
-      result: isEn
-        ? {
-            tag: 'AdSense Display · Post-Match Result Slot',
-            title: 'Upgrade to Pro Ad-Free & Post-Game Engine Analysis',
-            sub: 'Shown only after GameEnded — never interrupts clock or board'
-          }
-        : {
-            tag: 'Google AdSense 展示廣告版位 · 賽後結算橫幅',
-            title: '【賽後版位】預留 AdSense / 棋社贊助橫幅（僅於對局結束後顯示）',
-            sub: '嚴守規格書第 10 節：計分對局進行中零全版與零遮擋廣告'
-          }
-    }[placement || 'lobby'];
+    const slot = placement || 'lobby';
+    const sponsorCopy = { tag: T('ad.' + slot + '.tag'), title: T('ad.' + slot + '.title'), sub: T('ad.' + slot + '.sub') };
 
     containerEl.innerHTML =
       '<div class="cba-ad-slot" data-ad-client="' +
@@ -166,7 +143,7 @@
    * H5 Games Ads Interstitial between two games ("Rematch"), enforcing cooldown cap
    * and NEVER firing while a match is actively in progress.
    */
-  function maybeShowInterstitial(lang, onComplete) {
+  function maybeShowInterstitial(onComplete) {
     if (activeRatedMatchLocked) {
       metrics.blockedDuringActiveMatch++;
       if (onComplete) onComplete({ shown: false, reason: 'blocked_active_match' });
@@ -189,7 +166,6 @@
     showTimedOverlayModal({
       mode: 'interstitial',
       seconds: 2,
-      lang: lang,
       onDone: function () {
         if (onComplete) onComplete({ shown: true });
       }
@@ -199,7 +175,7 @@
   /**
    * H5 Games Ads Rewarded Ad: Player explicitly clicks "Watch Ad for Master Hint" in vs-Bot mode.
    */
-  function requestRewardedHint(lang, onRewardGranted) {
+  function requestRewardedHint(onRewardGranted) {
     if (!isAdsEnabled() || !config.rewardedHintEnabled) {
       // 廣告關閉時直接給提示，不播放廣告
       if (onRewardGranted) onRewardGranted();
@@ -212,7 +188,6 @@
     showTimedOverlayModal({
       mode: 'rewarded',
       seconds: 2,
-      lang: lang,
       onDone: function (completed) {
         if (completed) {
           metrics.rewardedCompleted++;
@@ -223,12 +198,15 @@
     return true;
   }
 
+  function countdownText(seconds) {
+    return BoardArena.I18N.t('ad.countdown', { seconds: seconds });
+  }
+
   function showTimedOverlayModal(opts) {
     if (typeof document === 'undefined') {
       if (opts.onDone) opts.onDone(true);
       return;
     }
-    const isEn = opts.lang === 'en';
     const isRewarded = opts.mode === 'rewarded';
     const overlay = document.createElement('div');
     overlay.className = 'cba-h5ad-overlay';
@@ -241,35 +219,23 @@
       (isRewarded ? 'H5 REWARDED AD' : 'H5 INTERSTITIAL AD') +
       '</span>' +
       '<span id="cbaAdCountdown" class="cba-tabular">' +
-      (isEn ? 'Ready in ' + left + 's' : '倒數 ' + left + ' 秒') +
+      countdownText(left) +
       '</span>' +
       '</div>' +
       '<h3>' +
-      (isRewarded
-        ? isEn
-          ? 'Unlock Master AI Top-3 Tactical Hint'
-          : '觀看 H5 獎勵廣告・解鎖【大師級 AI 最佳三選點提示】'
-        : isEn
-        ? 'Between-Games Sponsor Break (Frequency Capped)'
-        : '兩盤之間插頁廣告（具備 180 秒頻率上限保護）') +
+      T(isRewarded ? 'ad.rewardedTitle' : 'ad.interstitialTitle') +
       '</h3>' +
       '<p>' +
-      (isRewarded
-        ? isEn
-          ? 'Google H5 Games Ads adBreak({ type: "reward" }) compatible hook.'
-          : '已串接標準 Google H5 Games Ads adBreak({ type: "reward" }) 介面，僅於單人電腦模式主動點擊時觸發。'
-        : isEn
-        ? 'Google H5 Games Ads adBreak({ type: "next" }) compatible hook between rematches.'
-        : '已串接標準 Google H5 Games Ads adBreak({ type: "next" }) 介面，計分對局進行中絕不彈出。') +
+      T(isRewarded ? 'ad.rewardedBody' : 'ad.interstitialBody') +
       '</p>' +
       '<div class="cba-h5ad-actions">' +
       (isRewarded
         ? '<button type="button" class="cba-btn cba-btn-ghost" id="cbaCancelRewardBtn">' +
-          (isEn ? 'Cancel' : '取消觀看') +
+          T('ad.cancel') +
           '</button>'
         : '') +
       '<button type="button" class="cba-btn cba-btn-gold" id="cbaFinishAdBtn" disabled>' +
-      (isEn ? 'Please wait...' : '請稍候...') +
+      T('ad.wait') +
       '</button>' +
       '</div>' +
       '</div>';
@@ -283,19 +249,13 @@
       left--;
       if (left <= 0) {
         clearInterval(timer);
-        if (countEl) countEl.textContent = isEn ? 'Completed ✓' : '可關閉 ✓';
+        if (countEl) countEl.textContent = T('ad.completed');
         if (finishBtn) {
           finishBtn.disabled = false;
-          finishBtn.textContent = isRewarded
-            ? isEn
-              ? 'Claim Master Hint →'
-              : '領取大師提示 →'
-            : isEn
-            ? 'Continue to Match →'
-            : '繼續下一盤 →';
+          finishBtn.textContent = T(isRewarded ? 'ad.claimHint' : 'ad.continue');
         }
       } else if (countEl) {
-        countEl.textContent = isEn ? 'Ready in ' + left + 's' : '倒數 ' + left + ' 秒';
+        countEl.textContent = countdownText(left);
       }
     }, 650);
 

@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.1.0
+// Changes: Board labels and piece glyphs follow the selected language
+// 修改: 棋盤文字與棋子字形跟隨語言
+// ============================================
 /**
  * Classic Board Arena — 2x Retina Tactile Board & Piece Renderer
  * Inspired by PlayOK clarity × Gomoku.com warm tactile realism.
@@ -11,6 +17,28 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+
+  /** 取得目前語言的文字 */
+  function T(key, params) {
+    return BoardArena.I18N.t(key, params);
+  }
+
+  /** 棋子字形：依語言使用對應字形與字型（繁體標楷、簡體楷體、日文明朝） */
+  function pieceGlyph(text) {
+    return BoardArena.I18N.glyphs(text);
+  }
+
+  function pieceFontStack() {
+    const lang = BoardArena.I18N.getLang();
+    if (lang === 'zh-CN') return '"KaiTi", "SimKai", "STKaiti", "Microsoft YaHei", serif';
+    if (lang === 'ja') return '"Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", "Noto Serif CJK JP", serif';
+    return '"DFKai-SB", "BiauKai", "Kaiti TC", "Microsoft JhengHei", serif';
+  }
+
+  /** 駒台標題可用寬度（再往右是持駒格），長譯文會自動壓縮 */
+  const HAND_TITLE_MAX_WIDTH = 172;
+  /** 導師標記圓圈內的文字寬度上限 */
+  const MENTOR_TAG_MAX_WIDTH = 27;
 
   const SHOGI_KANJI = {
     K1: '王將',
@@ -689,11 +717,11 @@
       // Chu River & Han Border calligraphy
       ctx.save();
       ctx.fillStyle = 'rgba(59, 24, 6, 0.82)';
-      ctx.font = '800 26px "DFKai-SB", "BiauKai", "Kaiti TC", "Microsoft JhengHei", serif';
+      ctx.font = '800 26px ' + pieceFontStack();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('楚 河', padX + 2 * stepX, padY + 4.5 * stepY);
-      ctx.fillText('漢 界', padX + 6 * stepX, padY + 4.5 * stepY);
+      ctx.fillText(pieceGlyph('楚 河'), padX + 2 * stepX, padY + 4.5 * stepY);
+      ctx.fillText(pieceGlyph('漢 界'), padX + 6 * stepX, padY + 4.5 * stepY);
       ctx.restore();
 
       // File numbers (Top Black 1..9, Bottom Red 九..一)
@@ -745,7 +773,7 @@
             drawCaptureReticle(cx, cy, pieceR + 2, false);
           }
 
-          drawXiangqiPiece(cx, isSelected ? cy - 3 : cy, pieceR, p.owner, XIANGQI_KANJI[p.owner][p.type]);
+          drawXiangqiPiece(cx, isSelected ? cy - 3 : cy, pieceR, p.owner, pieceGlyph(XIANGQI_KANJI[p.owner][p.type]));
         }
       }
 
@@ -843,7 +871,7 @@
 
       // Engraved traditional calligraphy
       ctx.fillStyle = ink;
-      ctx.font = '900 ' + Math.round(r * 1.05) + 'px "DFKai-SB", "BiauKai", "Kaiti TC", "PMingLiU", serif';
+      ctx.font = '900 ' + Math.round(r * 1.05) + 'px ' + pieceFontStack();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, cx, cy + 1.5);
@@ -1149,7 +1177,7 @@
           }
 
           const key = p.type === 'K' ? 'K' + p.owner : (p.promoted ? '+' : '') + p.type;
-          drawShogiKoma(cx, isSelected ? cy - 2 : cy, cellW * 0.82, cellH * 0.84, p.owner, SHOGI_KANJI[key] || p.type, !!p.promoted);
+          drawShogiKoma(cx, isSelected ? cy - 2 : cy, cellW * 0.82, cellH * 0.84, p.owner, pieceGlyph(SHOGI_KANJI[key] || p.type), !!p.promoted);
         }
       }
 
@@ -1210,8 +1238,8 @@
       ctx.font = '700 13px "Microsoft JhengHei", sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const title = owner === 1 ? '☗ 先手駒台 (點擊持駒打入)' : '☖ 後手駒台';
-      ctx.fillText(title, x + 12, y + h / 2);
+      const title = T(owner === 1 ? 'board.senteHand' : 'board.goteHand');
+      ctx.fillText(title, x + 12, y + h / 2, HAND_TITLE_MAX_WIDTH);
 
       const order = ['R', 'B', 'G', 'S', 'N', 'L', 'P'];
       let slotX = x + 190;
@@ -1232,7 +1260,7 @@
           ctx.fillStyle = 'rgba(253, 224, 71, 0.35)';
           ctx.fill();
         }
-        drawShogiKoma(slotX + slotW / 2, y + h / 2 + 1, 38, 44, owner, SHOGI_KANJI[pt], false);
+        drawShogiKoma(slotX + slotW / 2, y + h / 2 + 1, 38, 44, owner, pieceGlyph(SHOGI_KANJI[pt]), false);
         if (cnt > 0) {
           ctx.fillStyle = '#22c55e';
           ctx.beginPath();
@@ -1282,11 +1310,11 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (label.length >= 2) {
-        ctx.font = '900 ' + Math.round(h * 0.31) + 'px "DFKai-SB", "Yu Mincho", "Microsoft JhengHei", serif';
+        ctx.font = '900 ' + Math.round(h * 0.31) + 'px ' + pieceFontStack();
         ctx.fillText(label[0], 0, -h * 0.12);
         ctx.fillText(label[1], 0, h * 0.21);
       } else {
-        ctx.font = '900 ' + Math.round(h * 0.44) + 'px "DFKai-SB", "Yu Mincho", "Microsoft JhengHei", serif';
+        ctx.font = '900 ' + Math.round(h * 0.44) + 'px ' + pieceFontStack();
         ctx.fillText(label, 0, h * 0.05);
       }
       ctx.restore();
@@ -1536,7 +1564,7 @@
       ctx.fillStyle = '#fde68a';
       ctx.font = '700 11px "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText((owner === 1 ? '白收 ' : '黑收 ') + count, x + w / 2, y + 16);
+      ctx.fillText(T(owner === 1 ? 'board.whiteOff' : 'board.blackOff', { count: count }), x + w / 2, y + 16, w - 4);
 
       const barH = Math.min(12, (h - 34) / 15);
       for (let i = 0; i < count; i++) {
@@ -1717,7 +1745,7 @@
           ctx.font = '900 10.5px "Microsoft JhengHei", "Segoe UI", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('實戰', aDst.x, aDst.y + 0.5);
+          ctx.fillText(T('board.actualTag'), aDst.x, aDst.y + 0.5, MENTOR_TAG_MAX_WIDTH);
         }
       }
 
@@ -1744,7 +1772,7 @@
           ctx.font = '900 10.5px "Microsoft JhengHei", "Segoe UI", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('★正解', bDst.x, bDst.y + 0.5);
+          ctx.fillText(T('board.bestTag'), bDst.x, bDst.y + 0.5, MENTOR_TAG_MAX_WIDTH);
         }
       }
 

@@ -1,11 +1,25 @@
 <!DOCTYPE html>
+<!-- ============================================
+     Date: 2026-11-06
+     Version: v1.2.0
+     Changes: Static text bound to dictionaries (data-i18n); 9-language selector and hreflang
+     修改: 靜態文字改由字典提供（data-i18n）；新增 9 種語言選單與 hreflang
+     ============================================ -->
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="世界八大經典棋藝對戰館 — 黑白棋、中國象棋、圍棋、五子棋、國際跳棋、西洋棋、日本將棋、雙陸棋。免登入、免安裝，直接在瀏覽器與四種難度的電腦對手對弈。" />
-  <link rel="alternate" hreflang="zh-TW" href="./index.html?lang=zh-tw" />
-  <link rel="alternate" hreflang="en" href="./index.html?lang=en" />
+  <link rel="alternate" hreflang="zh-TW" href="https://yehtech.github.io/board-arena/?lang=zh-TW" />
+  <link rel="alternate" hreflang="zh-CN" href="https://yehtech.github.io/board-arena/?lang=zh-CN" />
+  <link rel="alternate" hreflang="en" href="https://yehtech.github.io/board-arena/?lang=en" />
+  <link rel="alternate" hreflang="ja" href="https://yehtech.github.io/board-arena/?lang=ja" />
+  <link rel="alternate" hreflang="ko" href="https://yehtech.github.io/board-arena/?lang=ko" />
+  <link rel="alternate" hreflang="vi" href="https://yehtech.github.io/board-arena/?lang=vi" />
+  <link rel="alternate" hreflang="ru" href="https://yehtech.github.io/board-arena/?lang=ru" />
+  <link rel="alternate" hreflang="fr" href="https://yehtech.github.io/board-arena/?lang=fr" />
+  <link rel="alternate" hreflang="tr" href="https://yehtech.github.io/board-arena/?lang=tr" />
+  <link rel="alternate" hreflang="x-default" href="https://yehtech.github.io/board-arena/" />
   <title>世界八大經典棋藝對戰館 | 擬真棋盤・單人對電腦</title>
   <link rel="stylesheet" href="./css/arena.css" />
   <!-- 跨來源隔離：註冊 coi-sw.js，讓多執行緒 Fairy-Stockfish 引擎可在 GitHub Pages 執行（首次造訪會自動重新整理一次） -->
@@ -48,7 +62,7 @@
       </div>
     </div>
 
-    <nav class="cba-nav" aria-label="Main Navigation">
+    <nav class="cba-nav" data-i18n-aria="ui.mainNavigation">
       <button type="button" class="cba-btn active" id="nav-lobby" onclick="BoardArena.App.switchView('lobby')">🏛️ 八大棋種大廳</button>
       <button type="button" class="cba-btn" id="nav-arena" onclick="BoardArena.App.switchView('arena')">♟️ 對局舞台</button>
       <button type="button" class="cba-btn" id="nav-leaderboard" onclick="BoardArena.App.switchView('leaderboard')">🏆 Glicko-2 排行榜</button>
@@ -56,7 +70,7 @@
       <button type="button" class="cba-btn" id="nav-legal" onclick="BoardArena.App.switchView('legal')">⚖️ 分級與條款</button>
       <button type="button" class="cba-btn" id="btnSoundToggle" onclick="BoardArena.App.toggleSound()">🔊 擬真音效</button>
       <button type="button" class="cba-btn" id="btnThemeToggle" onclick="BoardArena.App.toggleTheme()">☀️ 經典淺色</button>
-      <button type="button" class="cba-btn" id="btnLangToggle" onclick="BoardArena.App.toggleLanguage()">English</button>
+      <select id="langSelect" class="cba-select" data-i18n-aria="ui.languageLabel" onchange="BoardArena.App.setLanguage(this.value)"></select>
     </nav>
 
     <div class="cba-nav" id="headerAuthArea"></div>
@@ -71,7 +85,7 @@
         <!-- Left: PlayOK Two-Column 8-Game Directory -->
         <div class="cba-panel">
           <div class="cba-panel-header">
-            <div class="cba-panel-title">🌐 八大經典棋種</div>
+            <div class="cba-panel-title" data-i18n="ui.lobbyCatalogTitle">🌐 八大經典棋種</div>
           </div>
           <div id="playokDirectoryGrid" class="playok-grid-2col"></div>
         </div>
@@ -113,15 +127,15 @@
 
           <!-- Single-Player Undo & AI Mentor Post-Game Review Controls -->
           <div id="singlePlayerUndoMentorBar" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:6px;border-top:1px solid var(--border-subtle);">
-            <button type="button" class="cba-btn cba-btn-emerald" id="btnUndoBotMove" onclick="BoardArena.App.undoBotMove()" title="單人模式悔棋回到上一手 (Ctrl+Z)">↩️ 單人悔棋</button>
-            <button type="button" class="cba-btn cba-btn-gold" id="btnMentorReview" onclick="BoardArena.App.openMentorReview()" title="啟動 AI 導師逐手勝率診斷與最佳著點對照">🎓 導師復盤</button>
+            <button type="button" class="cba-btn cba-btn-emerald" id="btnUndoBotMove" onclick="BoardArena.App.undoBotMove()" data-i18n-title="ui.undoTooltip">↩️ 單人悔棋</button>
+            <button type="button" class="cba-btn cba-btn-gold" id="btnMentorReview" onclick="BoardArena.App.openMentorReview()" data-i18n-title="ui.mentorTooltip">🎓 導師復盤</button>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:6px;border-top:1px solid var(--border-subtle);">
-            <button type="button" class="cba-btn" onclick="BoardArena.App.offerDrawCurrentMatch()">🤝 提和</button>
-            <button type="button" class="cba-btn cba-btn-crimson" onclick="BoardArena.App.resignCurrentMatch()">🏳️ 認輸</button>
-            <button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.requestRematch()">🔄 再來一盤</button>
-            <button type="button" class="cba-btn" onclick="BoardArena.App.switchView('lobby')">🏛️ 換棋種</button>
+            <button type="button" class="cba-btn" onclick="BoardArena.App.offerDrawCurrentMatch()" data-i18n="ui.offerDraw">🤝 提和</button>
+            <button type="button" class="cba-btn cba-btn-crimson" onclick="BoardArena.App.resignCurrentMatch()" data-i18n="ui.resign">🏳️ 認輸</button>
+            <button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.requestRematch()" data-i18n="ui.rematch">🔄 再來一盤</button>
+            <button type="button" class="cba-btn" onclick="BoardArena.App.switchView('lobby')" data-i18n="ui.changeGame">🏛️ 換棋種</button>
           </div>
         </div>
 
@@ -136,12 +150,12 @@
         <!-- Right Column: Move List / Replay Scrubber, Mentor Step Card & Canned Phrase Chat -->
         <div class="cba-panel" style="display:flex;flex-direction:column;gap:10px;">
           <div class="cba-panel-header" style="margin-bottom:0;">
-            <span class="cba-panel-title" style="font-size:14.5px;">📜 即時棋譜與回放</span>
+            <span class="cba-panel-title" style="font-size:14.5px;" data-i18n="ui.replayTitle">📜 即時棋譜與回放</span>
             <div style="display:flex;gap:4px;">
-              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay(0)" title="開局">⏮</button>
-              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('prev')" title="上一手">◀</button>
-              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('next')" title="下一手">▶</button>
-              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('live')" title="最新局面">⏭</button>
+              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay(0)" data-i18n-title="ui.replayStart" data-i18n-aria="ui.replayStart">⏮</button>
+              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('prev')" data-i18n-title="ui.replayPrev" data-i18n-aria="ui.replayPrev">◀</button>
+              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('next')" data-i18n-title="ui.replayNext" data-i18n-aria="ui.replayNext">▶</button>
+              <button type="button" class="cba-btn" style="padding:3px 8px;" onclick="BoardArena.App.scrubReplay('live')" data-i18n-title="ui.replayLive" data-i18n-aria="ui.replayLive">⏭</button>
             </div>
           </div>
 
@@ -151,12 +165,12 @@
 
           <div id="mentorQuickStepCard" style="display:none;"></div>
 
-          <button type="button" class="cba-btn" onclick="BoardArena.App.copyReplayShareLink()">🔗 複製棋譜分享連結</button>
+          <button type="button" class="cba-btn" onclick="BoardArena.App.copyReplayShareLink()" data-i18n="ui.copyShareLink">🔗 複製棋譜分享連結</button>
 
           <div style="border-top:1px solid var(--border-subtle);padding-top:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <b style="font-size:13px;">💬 多語系罐頭短語（防騷擾安全聊天）</b>
-              <button type="button" class="cba-btn cba-btn-crimson" style="padding:2px 8px;font-size:11px;" onclick="BoardArena.App.reportCurrentOpponent()">🚩 檢舉</button>
+              <b style="font-size:13px;" data-i18n="ui.phraseTitle">💬 多語系罐頭短語（防騷擾安全聊天）</b>
+              <button type="button" class="cba-btn cba-btn-crimson cba-btn-nowrap" style="padding:2px 8px;font-size:11px;" onclick="BoardArena.App.reportCurrentOpponent()" data-i18n="ui.reportShort">🚩 檢舉</button>
             </div>
             <div class="phrase-grid" id="cannedPhraseGrid"></div>
             <div id="cannedChatLog" style="margin-top:8px;max-height:95px;overflow-y:auto;font-size:12px;color:var(--text-secondary);"></div>
@@ -175,8 +189,8 @@
       <div class="cba-panel">
         <div class="cba-panel-header">
           <div>
-            <div class="cba-panel-title">🏆 Glicko-2 全球棋士天梯排行榜</div>
-            <div style="font-size:12.5px;color:var(--text-muted);">起始 1500 分（RD 350）· 僅計算登入真人雙人對局 · 電腦對戰不影響天梯積分</div>
+            <div class="cba-panel-title" data-i18n="ui.leaderboardTitle">🏆 Glicko-2 全球棋士天梯排行榜</div>
+            <div style="font-size:12.5px;color:var(--text-muted);" data-i18n="ui.leaderboardSub">起始 1500 分（RD 350）· 僅計算登入真人雙人對局 · 電腦對戰不影響天梯積分</div>
           </div>
         </div>
         <div id="leaderboardContent"></div>
@@ -189,7 +203,7 @@
     <section id="view-academy" class="cba-view">
       <div class="cba-panel">
         <div class="cba-panel-header">
-          <div class="cba-panel-title">📖 八大棋種規則教學、開中殘局專欄與每日殘局挑戰</div>
+          <div class="cba-panel-title" data-i18n="ui.academyTitle">📖 八大棋種規則教學、開中殘局專欄與每日殘局挑戰</div>
         </div>
         <div id="academyContent"></div>
         <div id="adSlotAcademy" class="cba-ad-container"></div>
@@ -201,22 +215,22 @@
          =================================================================== -->
     <section id="view-legal" class="cba-view">
       <div class="cba-panel" style="display:flex;flex-direction:column;gap:14px;">
-        <div class="cba-panel-title">⚖️ 台灣遊戲軟體分級標示、隱私權政策、服務條款與聯絡資訊</div>
+        <div class="cba-panel-title" data-i18n="legal.title">⚖️ 台灣遊戲軟體分級標示、隱私權政策、服務條款與聯絡資訊</div>
         <div class="cba-panel" style="background:var(--bg-card);">
-          <h4>1. 遊戲軟體分級管理辦法合規標示（第 10、11、13 條）</h4>
-          <p style="font-size:13.5px;margin-top:6px;">本網站全數八款棋藝（黑白棋、中國象棋、圍棋、五子棋、國際跳棋、西洋棋、日本將棋、雙陸棋）均屬純粹益智棋盤競技，不含任何虛擬遊戲幣、真錢交易或賭博機制，分級標示為「普遍級 (0+)」（標識大於 45×45 像素）。請注意使用時間，避免沉迷於遊戲。</p>
+          <h4 data-i18n="legal.ratingTitle">1. 遊戲軟體分級管理辦法合規標示（第 10、11、13 條）</h4>
+          <p style="font-size:13.5px;margin-top:6px;" data-i18n="legal.ratingBody">本網站全數八款棋藝（黑白棋、中國象棋、圍棋、五子棋、國際跳棋、西洋棋、日本將棋、雙陸棋）均屬純粹益智棋盤競技，不含任何虛擬遊戲幣、真錢交易或賭博機制，分級標示為「普遍級 (0+)」（標識大於 45×45 像素）。請注意使用時間，避免沉迷於遊戲。</p>
         </div>
         <div class="cba-panel" style="background:var(--bg-card);">
-          <h4>2. 隱私權政策</h4>
-          <p style="font-size:13.5px;margin-top:6px;">本網站免註冊、免登入，不蒐集任何個人資料，也不使用廣告或追蹤 Cookie。音效、主題、語言等偏好設定只存在您自己的瀏覽器（localStorage），不會傳送到任何伺服器；清除瀏覽器網站資料即可完全移除。</p>
+          <h4 data-i18n="legal.privacyTitle">2. 隱私權政策</h4>
+          <p style="font-size:13.5px;margin-top:6px;" data-i18n="legal.privacyBody">本網站免註冊、免登入，不蒐集任何個人資料，也不使用廣告或追蹤 Cookie。音效、主題、語言等偏好設定只存在您自己的瀏覽器（localStorage），不會傳送到任何伺服器；清除瀏覽器網站資料即可完全移除。</p>
         </div>
         <div class="cba-panel" style="background:var(--bg-card);">
-          <h4>3. 使用條款</h4>
-          <p style="font-size:13.5px;margin-top:6px;">本網站免費提供棋藝練習與娛樂，不涉及任何真錢、虛擬遊戲幣或賭博行為，嚴禁利用本網站從事賭博。最低建議使用年齡：6 歲以上（未滿法定年齡者請由家長陪同）。</p>
+          <h4 data-i18n="legal.termsTitle">3. 使用條款</h4>
+          <p style="font-size:13.5px;margin-top:6px;" data-i18n="legal.termsBody">本網站免費提供棋藝練習與娛樂，不涉及任何真錢、虛擬遊戲幣或賭博行為，嚴禁利用本網站從事賭博。最低建議使用年齡：6 歲以上（未滿法定年齡者請由家長陪同）。</p>
         </div>
         <div class="cba-panel" style="background:var(--bg-card);">
-          <h4>4. 問題回報與聯絡</h4>
-          <p style="font-size:13.5px;margin-top:6px;">發現規則錯誤或程式問題，歡迎到 <a href="https://github.com/Yehtech/board-arena/issues" target="_blank" rel="noopener" style="color:var(--accent-gold);">GitHub Issues</a> 回報。</p>
+          <h4 data-i18n="legal.contactTitle">4. 問題回報與聯絡</h4>
+          <p id="legalContactText" style="font-size:13.5px;margin-top:6px;"><a href="https://github.com/Yehtech/board-arena/issues" target="_blank" rel="noopener" style="color:var(--accent-gold);">GitHub Issues</a></p>
         </div>
       </div>
     </section>
@@ -225,7 +239,7 @@
   <!-- Official >=45x45px Taiwan Game Software Rating Footer -->
   <footer class="cba-footer">
     <div class="tw-rating-box">
-      <div class="tw-rating-mark" role="img" aria-label="普遍級 General Audience 0+">
+      <div class="tw-rating-mark" role="img" data-i18n-aria="ui.ratingMarkLabel">
         <span style="font-size:16px;">普</span>
         <span style="font-size:10px;">0+</span>
       </div>
@@ -243,6 +257,15 @@
   <script src="./js/rules/rules-core.js"></script>
   <script src="./js/glicko2.js"></script>
   <script src="./js/i18n.js"></script>
+  <script src="./js/i18n/zh-TW.js"></script>
+  <script src="./js/i18n/zh-CN.js"></script>
+  <script src="./js/i18n/en.js"></script>
+  <script src="./js/i18n/ja.js"></script>
+  <script src="./js/i18n/ko.js"></script>
+  <script src="./js/i18n/vi.js"></script>
+  <script src="./js/i18n/ru.js"></script>
+  <script src="./js/i18n/fr.js"></script>
+  <script src="./js/i18n/tr.js"></script>
   <script src="./js/sound-fx.js"></script>
   <script src="./js/ads-manager.js"></script>
 

@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.3.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Enforce uchifuzume (pawn-drop checkmate is illegal); sennichite (4-fold repetition draw, perpetual check loses)
@@ -14,6 +20,7 @@
   'use strict';
 
   const BoardArena = global.BoardArena;
+  const msg = BoardArena.msg;
   if (!BoardArena || typeof BoardArena.registerRule !== 'function') {
     throw new Error('BoardArena.registerRule is required before loading shogi.js');
   }
@@ -24,19 +31,19 @@
   const PROMOTABLE = { R: true, B: true, S: true, N: true, L: true, P: true };
 
   const SIDE_LABELS = {
-    1: { zh: '先手 ☗', en: 'Sente ☗' },
-    2: { zh: '後手 ☖', en: 'Gote ☖' }
+    1: 'side.sente',
+    2: 'side.gote'
   };
 
   const PIECE_LABELS = {
-    K: { zh1: '王將', zh2: '玉將', short1: '王', short2: '玉', en: 'King' },
-    R: { base: '飛', promoted: '龍', en: 'Rook', enPromoted: 'Dragon (+R)' },
-    B: { base: '角', promoted: '馬', en: 'Bishop', enPromoted: 'Horse (+B)' },
-    G: { base: '金', promoted: '金', en: 'Gold', enPromoted: 'Gold' },
-    S: { base: '銀', promoted: '全', en: 'Silver', enPromoted: 'Promoted Silver (+S)' },
-    N: { base: '桂', promoted: '圭', en: 'Knight', enPromoted: 'Promoted Knight (+N)' },
-    L: { base: '香', promoted: '杏', en: 'Lance', enPromoted: 'Promoted Lance (+L)' },
-    P: { base: '步', promoted: 'と', en: 'Pawn', enPromoted: 'Tokin (+P)' }
+    K: { base: '王', promoted: '王' },
+    R: { base: '飛', promoted: '龍' },
+    B: { base: '角', promoted: '馬' },
+    G: { base: '金', promoted: '金' },
+    S: { base: '銀', promoted: '全' },
+    N: { base: '桂', promoted: '圭' },
+    L: { base: '香', promoted: '杏' },
+    P: { base: '步', promoted: 'と' }
   };
 
   const BOARD_VALUES = {
@@ -106,6 +113,11 @@
       return player === 1 ? r <= 1 : r >= 7;
     }
     return false;
+  }
+
+  function pieceMsg(piece) {
+    if (piece.type === 'K') return msg(piece.owner === 1 ? 'piece.shogi.K1' : 'piece.shogi.K2');
+    return msg('piece.shogi.' + (piece.promoted ? 'p' : '') + piece.type);
   }
 
   function pieceKanji(piece) {
@@ -440,7 +452,7 @@
           to: { r: nr, c: nc },
           piece: piece.type,
           promote: true,
-          choiceLabel: { zh: '成 (升變)', en: 'Promote' },
+          choiceLabelKey: 'choice.promote',
           isCapture: isCap,
           captures: caps,
           notation: formatBoardNotation(player, piece, nr, nc, isCap, true, true)
@@ -451,7 +463,7 @@
           to: { r: nr, c: nc },
           piece: piece.type,
           promote: false,
-          choiceLabel: { zh: '不成', en: 'Keep' },
+          choiceLabelKey: 'choice.keep',
           isCapture: isCap,
           captures: caps,
           notation: formatBoardNotation(player, piece, nr, nc, isCap, false, true)
@@ -803,8 +815,7 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '對局已結束',
-        reasonEn: 'Game has already ended'
+        reason: msg('rule.gameEnded')
       };
     }
     const p = player || state.currentPlayer;
@@ -812,16 +823,14 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '目前輪到' + SIDE_LABELS[state.currentPlayer].zh + '行動',
-        reasonEn: 'It is currently ' + SIDE_LABELS[state.currentPlayer].en + "'s turn"
+        reason: msg('rule.notYourTurn', { side: msg(SIDE_LABELS[state.currentPlayer]) })
       };
     }
     if (!source) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '請點擊盤面己方棋駒或駒台上的持駒',
-        reasonEn: 'Select one of your board pieces or a piece from your Komadai hand'
+        reason: msg('rule.shogi.clickOwnPiece')
       };
     }
 
@@ -831,8 +840,7 @@
         return {
           selectable: false,
           hasMoves: false,
-          reasonZh: '這是對手的駒台，請選擇己方駒台持駒',
-          reasonEn: 'Opponent Komadai — select from your own captured pieces'
+          reason: msg('rule.shogi.opponentHand')
         };
       }
       const pieceType = source.piece;
@@ -841,30 +849,23 @@
         return {
           selectable: false,
           hasMoves: false,
-          reasonZh: '駒台上沒有可用的「' + (PIECE_LABELS[pieceType] ? PIECE_LABELS[pieceType].base : pieceType) + '」',
-          reasonEn: 'You have no ' + pieceType + ' in hand to drop'
+          reason: msg('rule.shogi.noneInHand', { piece: pieceMsg({ type: pieceType }) })
         };
       }
       const drops = getMovesForSource(state, source);
-      const kanji = PIECE_LABELS[pieceType].base;
+      const handPiece = pieceMsg({ type: pieceType });
       if (drops.length === 0) {
         const inChk = state.inCheck === p || isInCheck(state.board, p);
         return {
           selectable: true,
           hasMoves: false,
-          reasonZh: inChk
-            ? '己方玉將正受王手，打入「' + kanji + '」無法合駒解將（或受二步禁手限制）'
-            : '持駒「' + kanji + '」受二步禁手（同筋已有未升變步兵）或死格限制，無合法打入點',
-          reasonEn: inChk
-            ? 'Your King is in check and dropping ' + PIECE_LABELS[pieceType].en + ' cannot block check'
-            : 'No legal drop square (restricted by Nifu double-pawn rule or dead rank)'
+          reason: msg(inChk ? 'rule.shogi.dropCannotBlock' : 'rule.shogi.dropRestricted', { piece: handPiece })
         };
       }
       return {
         selectable: true,
         hasMoves: true,
-        reasonZh: '已選取駒台持駒「' + kanji + '」：可打入 ' + drops.length + ' 處空位',
-        reasonEn: 'Selected hand ' + PIECE_LABELS[pieceType].en + ': ' + drops.length + ' legal drop square(s)'
+        reason: msg('rule.shogi.handSelected', { piece: handPiece, count: drops.length })
       };
     }
 
@@ -873,8 +874,7 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '請點擊有效盤面座標或駒台持駒',
-        reasonEn: 'Select a valid board coordinate or Komadai piece'
+        reason: msg('rule.shogi.invalidSource')
       };
     }
 
@@ -883,32 +883,25 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '此格為空位，請點擊己方棋駒或先選取駒台持駒再打入',
-        reasonEn: 'Empty square — select a friendly piece or choose a Komadai piece to drop'
+        reason: msg('rule.shogi.emptySquare')
       };
     }
     if (cell.owner !== p) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '這是對手的「' + pieceKanji(cell) + '」，請點選' + SIDE_LABELS[p].zh + '棋駒',
-        reasonEn: 'Opponent piece — select your own ' + SIDE_LABELS[p].en + ' piece'
+        reason: msg('rule.shogi.opponentPiece', { piece: pieceMsg(cell), side: msg(SIDE_LABELS[p]) })
       };
     }
 
     const moves = getMovesForSource(state, source);
-    const kLabel = pieceKanji(cell);
+    const pieceLabel = pieceMsg(cell);
     if (moves.length === 0) {
       const inChk = state.inCheck === p || isInCheck(state.board, p);
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: inChk
-          ? '己方正受王手，此「' + kLabel + '」無法解將'
-          : '此「' + kLabel + '」受阻擋或受牽制（移動會使玉將受王手）',
-        reasonEn: inChk
-          ? 'Your King is in check and this piece cannot resolve check'
-          : 'This piece is blocked or pinned to your King'
+        reason: msg(inChk ? 'rule.shogi.cannotResolveCheck' : 'rule.shogi.pinned', { piece: pieceLabel })
       };
     }
 
@@ -926,20 +919,11 @@
     return {
       selectable: true,
       hasMoves: true,
-      reasonZh:
-        '已選取「' +
-        kLabel +
-        '」：可走 ' +
-        destCount +
-        ' 格' +
-        (capCount > 0 ? '（含 ' + capCount + ' 個可吃目標）' : ''),
-      reasonEn:
-        'Selected ' +
-        kLabel +
-        ': ' +
-        destCount +
-        ' legal destination(s)' +
-        (capCount > 0 ? ' (' + capCount + ' capture(s))' : '')
+      reason: msg('rule.shogi.selected', {
+        piece: pieceLabel,
+        count: destCount,
+        captures: capCount > 0 ? msg('rule.capturesSuffix', { count: capCount }) : ''
+      })
     };
   }
 

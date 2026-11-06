@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.3.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Repetition rule: 3-fold repetition draws, perpetual check loses (perpetual chase not implemented)
@@ -14,6 +20,7 @@
   'use strict';
 
   const BoardArena = global.BoardArena;
+  const msg = BoardArena.msg;
   if (!BoardArena || typeof BoardArena.registerRule !== 'function') {
     throw new Error('BoardArena.registerRule is required before loading xiangqi.js');
   }
@@ -22,8 +29,8 @@
   const COLS = 9;
 
   const SIDE_LABELS = {
-    1: { zh: '紅方', en: 'Red' },
-    2: { zh: '黑方', en: 'Black' }
+    1: 'side.red',
+    2: 'side.black'
   };
 
   const PIECE_LABELS = {
@@ -537,30 +544,17 @@
     return moves;
   }
 
+  function pieceMsg(piece) {
+    return msg('piece.xiangqi.' + piece.owner + '.' + piece.type);
+  }
+
   function diagnoseZeroMoves(state, r, c, piece) {
     const player = piece.owner;
-    if (state.inCheck === player || isInCheck(state.board, player)) {
-      return {
-        zh: '己方正受將軍，此「' + PIECE_LABELS[player][piece.type] + '」無法解將，請選擇能應將的棋子',
-        en: 'Your General is in check and this piece cannot resolve check'
-      };
-    }
-    if (piece.type === 'H') {
-      return {
-        zh: '此「' + PIECE_LABELS[player].H + '」受蹩馬腿阻擋或受牽制（移動會導致帥／將受攻或飛將）',
-        en: 'Horse is blocked at the leg (hobbled) or pinned to your General'
-      };
-    }
-    if (piece.type === 'E') {
-      return {
-        zh: '此「' + PIECE_LABELS[player].E + '」受塞象眼阻擋或受牽制保護帥／將',
-        en: 'Elephant eye is blocked or piece is pinned to your General'
-      };
-    }
-    return {
-      zh: '此「' + PIECE_LABELS[player][piece.type] + '」目前受阻或受牽制（移動會暴露帥／將或造成王見王）',
-      en: 'This piece is blocked or pinned (moving it would expose your General)'
-    };
+    const params = { piece: pieceMsg(piece) };
+    if (state.inCheck === player || isInCheck(state.board, player)) return msg('rule.xiangqi.cannotResolveCheck', params);
+    if (piece.type === 'H') return msg('rule.xiangqi.horseBlocked', params);
+    if (piece.type === 'E') return msg('rule.xiangqi.elephantBlocked', params);
+    return msg('rule.xiangqi.blocked', params);
   }
 
   function canSelectSource(state, source, player) {
@@ -568,8 +562,7 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '對局已結束',
-        reasonEn: 'Game has already ended'
+        reason: msg('rule.gameEnded')
       };
     }
     const p = player || state.currentPlayer;
@@ -577,16 +570,14 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '目前輪到' + SIDE_LABELS[state.currentPlayer].zh + '行動',
-        reasonEn: 'It is currently ' + SIDE_LABELS[state.currentPlayer].en + "'s turn"
+        reason: msg('rule.notYourTurn', { side: msg(SIDE_LABELS[state.currentPlayer]) })
       };
     }
     if (!source || typeof source.r !== 'number' || typeof source.c !== 'number' || !inBounds(source.r, source.c)) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '請點擊棋盤交叉點上的己方棋子',
-        reasonEn: 'Click one of your own pieces on the board'
+        reason: msg('rule.xiangqi.clickOwnPiece')
       };
     }
     const cell = state.board[source.r][source.c];
@@ -594,26 +585,22 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '此交叉點為空位，請點擊' + SIDE_LABELS[p].zh + '棋子',
-        reasonEn: 'Empty intersection — select a ' + SIDE_LABELS[p].en + ' piece'
+        reason: msg('rule.xiangqi.empty', { side: msg(SIDE_LABELS[p]) })
       };
     }
     if (cell.owner !== p) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '這是對手的「' + PIECE_LABELS[cell.owner][cell.type] + '」，請點選' + SIDE_LABELS[p].zh + '棋子',
-        reasonEn: 'Opponent piece — select your own ' + SIDE_LABELS[p].en + ' piece'
+        reason: msg('rule.xiangqi.opponentPiece', { piece: pieceMsg(cell), side: msg(SIDE_LABELS[p]) })
       };
     }
     const moves = getMovesForSource(state, source);
     if (moves.length === 0) {
-      const diag = diagnoseZeroMoves(state, source.r, source.c, cell);
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: diag.zh,
-        reasonEn: diag.en
+        reason: diagnoseZeroMoves(state, source.r, source.c, cell)
       };
     }
     const capCount = moves.filter(function (m) {
@@ -622,20 +609,11 @@
     return {
       selectable: true,
       hasMoves: true,
-      reasonZh:
-        '已選取「' +
-        PIECE_LABELS[p][cell.type] +
-        '」：可走 ' +
-        moves.length +
-        ' 步' +
-        (capCount > 0 ? '（含 ' + capCount + ' 個紅框可吃目標）' : ''),
-      reasonEn:
-        'Selected ' +
-        PIECE_LABELS[p][cell.type] +
-        ': ' +
-        moves.length +
-        ' legal move(s)' +
-        (capCount > 0 ? ' (' + capCount + ' capture target(s))' : '')
+      reason: msg('rule.xiangqi.selected', {
+        piece: pieceMsg(cell),
+        count: moves.length,
+        captures: capCount > 0 ? msg('rule.xiangqi.capturesSuffix', { count: capCount }) : ''
+      })
     };
   }
 

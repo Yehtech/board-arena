@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.2.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
 /**
  * Classic Board Arena — Gomoku 15x15 Rule Engine
  * Supports standard 5-in-a-row (5+ contiguous) and Three-Move Swap (Pie Rule, default true),
@@ -7,6 +13,7 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+  const msg = BoardArena.msg;
 
   const SIZE = 15;
   const TOTAL_CELLS = SIZE * SIZE;
@@ -766,10 +773,10 @@
 
   function canSelectSource(state, source) {
     if (!state || state.status === 'ended') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '對局已結束。', reasonEn: 'Game has ended.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.gameEnded') };
     }
     if (!source || typeof source.r !== 'number' || typeof source.c !== 'number') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '請點擊空白交叉點落子。', reasonEn: 'Click an empty intersection.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.clickEmptyPoint') };
     }
     if (
       source.r >= 0 &&
@@ -785,15 +792,14 @@
         isCapture: false,
         notation: COL_LABELS[source.c] + (SIZE - source.r)
       };
-      return { ok: true, selectable: true, hasMoves: true, moves: [m], reasonZh: '', reasonEn: '' };
+      return { ok: true, selectable: true, hasMoves: true, moves: [m] };
     }
     return {
       ok: false,
       selectable: false,
       hasMoves: false,
       moves: [],
-      reasonZh: '此交叉點已有棋子。',
-      reasonEn: 'Intersection is already occupied.'
+      reason: msg('rule.occupied')
     };
   }
 
@@ -803,10 +809,7 @@
     rows: SIZE,
     cols: SIZE,
     starPoints: STAR_POINTS,
-    sideLabels: {
-      1: { zh: '黑方', en: 'Black' },
-      2: { zh: '白方', en: 'White' }
-    },
+    sideLabels: { 1: 'side.black', 2: 'side.white' },
     createInitialState: createInitialState,
     cloneState: cloneState,
     getLegalMoves: getLegalMoves,

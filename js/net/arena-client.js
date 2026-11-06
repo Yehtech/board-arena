@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.1.0
+// Changes: Auth error text comes from the dictionary
+// 修改: 登入錯誤訊息改用字典
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Only probe local 127.0.0.1:8890 server when page itself is opened locally
@@ -361,7 +367,7 @@
    */
   function assertPvpAuthenticated() {
     if (!isLoggedIn()) {
-      const err = new Error('雙人模式需先登入帳號才能進行對戰！');
+      const err = new Error(BoardArena.I18N.t('ui.loginRequiredBanner'));
       err.code = 'AUTH_REQUIRED_FOR_PVP';
       err.status = 401;
       throw err;

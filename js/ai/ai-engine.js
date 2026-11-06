@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.5.0
+// Changes: Coach comments returned as language-neutral messages
+// 修改: 導師評語改回傳語言中立的訊息
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.2.0
 // Changes: Go uses MCTS (go-mcts.js) with pass decision; old alpha-beta kept behind AI.goEngine='alphabeta'
@@ -1571,88 +1577,54 @@
     return ranked.slice(0, topK || 3);
   }
 
+  /**
+   * 產生導師評語。回傳語言中立的訊息陣列，由 BoardArena.I18N 組成文字。
+   * @returns {Array<{key: string, params: Object}>} 評語訊息
+   */
   function buildCoachComment(gameId, stateBefore, actualMove, bestMove, stateAfter, grade, winDrop) {
+    var msg = BoardArena.msg;
     var actualNot = (actualMove && (actualMove.notation || actualMove.id)) || '—';
     var bestNot = (bestMove && (bestMove.notation || bestMove.id)) || actualNot;
     var sameMove = !bestMove || actualMove.id === bestMove.id || actualNot === bestNot;
+    var move = { notation: String(actualNot) };
+    var best = { notation: String(bestNot) };
+    var drop = winDrop.toFixed(1);
 
     if (stateAfter && stateAfter.status === 'ended' && stateAfter.winner === stateBefore.currentPlayer) {
-      return {
-        zh: '🏆 致勝一擊！實戰走 【' + actualNot + '】 直接鎖定勝局。',
-        en: '🏆 Winning finisher! Playing [' + actualNot + '] clinches victory immediately.'
-      };
+      return [msg('coach.winning', { move: move })];
     }
 
     if (grade === 'best') {
-      var detailZh = '與導師引擎首選完全吻合，子力效率與盤面控制極佳。';
-      var detailEn = 'Matches the Mentor engine #1 choice with optimal positional efficiency.';
+      var detailKey = 'coach.detail.engineMatch';
       if (gameId === 'othello' && actualMove.to) {
         var r = actualMove.to.r;
         var c = actualMove.to.c;
-        if ((r === 0 || r === 7) && (c === 0 || c === 7)) {
-          detailZh = '精準搶佔黃金角位，建立不可翻轉的絕對根據地！';
-          detailEn = 'Captures a permanent Golden Corner anchor!';
-        }
+        if ((r === 0 || r === 7) && (c === 0 || c === 7)) detailKey = 'coach.detail.corner';
       } else if (actualMove.isCapture) {
-        detailZh = '果斷出擊得子，擴大盤面實利與先手主動權。';
-        detailEn = 'Decisive tactical capture gaining material and initiative.';
+        detailKey = 'coach.detail.capture';
       } else if (actualMove.promote) {
-        detailZh = '即時升變強化子力，大幅提升進攻威脅。';
-        detailEn = 'Timely promotion boosting piece firepower.';
+        detailKey = 'coach.detail.promotion';
       }
-      return {
-        zh: '🌟 妙手！實戰 【' + actualNot + '】 ' + detailZh,
-        en: '🌟 Best Move! [' + actualNot + '] — ' + detailEn
-      };
+      return [msg('coach.best', { move: move, detail: msg(detailKey) })];
     }
 
     if (grade === 'good') {
-      return {
-        zh: sameMove
-          ? '✅ 好棋！實戰 【' + actualNot + '】 穩健維持局勢均衡。'
-          : '✅ 好棋！實戰 【' + actualNot + '】 相當穩健（導師微幅首選為 【' + bestNot + '】，差距僅 ' + winDrop.toFixed(1) + '%）。',
-        en: sameMove
-          ? '✅ Good move! [' + actualNot + '] maintains a solid position.'
-          : '✅ Solid move [' + actualNot + '] (Mentor slightly prefers [' + bestNot + '], Δ' + winDrop.toFixed(1) + '%).'
-      };
+      return [sameMove ? msg('coach.goodSolid', { move: move }) : msg('coach.goodClose', { move: move, best: best, drop: drop })];
     }
 
-    var reasonZh = '讓出盤面主動權，導師建議改走 【' + bestNot + '】 以穩固陣型並爭取先手。';
-    var reasonEn = 'Concedes initiative; Mentor recommends [' + bestNot + '] for stronger control.';
-
+    var reasonKey = 'coach.reason.initiative';
     if (bestMove && bestMove.isCapture && !actualMove.isCapture) {
-      reasonZh = '錯失吃子良機！此時應走 【' + bestNot + '】 直接奪取敵方子力。';
-      reasonEn = 'Missed a tactical capture! Play [' + bestNot + '] to win material.';
+      reasonKey = 'coach.reason.missedCapture';
     } else if (gameId === 'othello' && actualMove.to) {
       var or = actualMove.to.r;
       var oc = actualMove.to.c;
-      if ((or === 1 || or === 6) && (oc === 1 || oc === 6)) {
-        reasonZh = '過早踏入角旁危險 X 位，易讓對手順勢佔角；應改下 【' + bestNot + '】 控制行動力。';
-        reasonEn = 'Stepped onto a risky X-square near an empty corner; play [' + bestNot + '] instead.';
-      }
+      if ((or === 1 || or === 6) && (oc === 1 || oc === 6)) reasonKey = 'coach.reason.xSquare';
     } else if (gameId === 'gomoku') {
-      reasonZh = '攻守焦點偏移，漏看關鍵連珠威脅或強攻點；應改落 【' + bestNot + '】 搶佔連珠要津。';
-      reasonEn = 'Missed a key five-in-a-row threat or fork; play [' + bestNot + '] instead.';
+      reasonKey = 'coach.reason.gomokuThreat';
     }
 
-    var prefixZh =
-      grade === 'blunder'
-        ? '💥 敗著（勝率流失 -' + winDrop.toFixed(1) + '%）：實戰 【' + actualNot + '】 '
-        : grade === 'mistake'
-        ? '❌ 失誤（勝率流失 -' + winDrop.toFixed(1) + '%）：實戰 【' + actualNot + '】 '
-        : '⚠️ 緩手（勝率流失 -' + winDrop.toFixed(1) + '%）：實戰 【' + actualNot + '】 ';
-
-    var prefixEn =
-      grade === 'blunder'
-        ? '💥 Blunder (-' + winDrop.toFixed(1) + '% win rate): [' + actualNot + '] — '
-        : grade === 'mistake'
-        ? '❌ Mistake (-' + winDrop.toFixed(1) + '% win rate): [' + actualNot + '] — '
-        : '⚠️ Inaccuracy (-' + winDrop.toFixed(1) + '% win rate): [' + actualNot + '] — ';
-
-    return {
-      zh: prefixZh + reasonZh,
-      en: prefixEn + reasonEn
-    };
+    var prefixKey = grade === 'blunder' ? 'coach.prefix.blunder' : grade === 'mistake' ? 'coach.prefix.mistake' : 'coach.prefix.inaccuracy';
+    return [msg(prefixKey, { drop: drop, move: move }), msg(reasonKey, { best: best })];
   }
 
   function analyzeMatchForMentor(gameId, stateHistory, moveHistory, humanSide) {
@@ -1753,8 +1725,7 @@
         winAfterP1: winAfterP1,
         winDrop: winDrop,
         grade: grade,
-        commentZh: comment.zh,
-        commentEn: comment.en
+        comment: comment
       });
     }
 

@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.5.0
+// Changes: Replace zh/en branches with dictionary lookups; language selector with 9 languages
+// 修改: 中英雙語分支全部改用字典；新增 9 種語言的語言選單
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.4.0
 // Changes: Pass match history to the engine bridge; human-readable end-reason labels in the result dialog
@@ -81,12 +87,33 @@
     return document.getElementById(id);
   }
 
-  function lang() {
-    return BoardArena.I18N.getLang();
+  /**
+   * 取得目前語言的介面文字。
+   * @param {string} key 字典 key
+   * @param {Object} [params] 佔位符參數
+   * @returns {string} 翻譯後的文字
+   */
+  function T(key, params) {
+    return BoardArena.I18N.t(key, params);
   }
 
-  function isEn() {
-    return lang() === 'en';
+  /**
+   * 取得棋種名稱。
+   * @param {string} gameId 棋種 id
+   * @returns {string} 目前語言的棋種名稱
+   */
+  function gameName(gameId) {
+    return T('game.' + gameId + '.name');
+  }
+
+  /**
+   * 組出電腦對手的顯示名稱。
+   * @param {string} levelId 難度 id
+   * @param {boolean} usesEngine 是否使用 Fairy-Stockfish
+   * @returns {string} 顯示名稱
+   */
+  function botDisplayName(levelId, usesEngine) {
+    return T('ui.botName', { level: T('ai.' + levelId) }) + (usesEngine ? ' · Fairy-Stockfish' : '');
   }
 
   function getCatalogEntry(gameId) {
@@ -112,7 +139,17 @@
   /* =========================================================================
    * INITIALIZATION & GLOBAL UI REFRESH
    * ========================================================================= */
+  /**
+   * 在第一次渲染前套用網址指定的語言（?lang=），避免先閃過預設語言。
+   * @returns {void}
+   */
+  function applyLanguageFromUrl() {
+    const qLang = new URLSearchParams(global.location.search || '').get('lang');
+    if (qLang && BoardArena.I18N.isSupported(qLang)) BoardArena.I18N.setLang(qLang);
+  }
+
   async function initApp() {
+    applyLanguageFromUrl();
     const canvas = $('arenaBoardCanvas');
     if (canvas) {
       renderer = BoardArena.createRenderer(canvas);
@@ -142,8 +179,8 @@
     await renderLeaderboardView();
     renderAcademyView();
 
-    BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby', lang());
-    BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy', lang());
+    BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby');
+    BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy');
 
     stateStore.clockInterval = setInterval(tickMatchClock, 100);
 
@@ -174,12 +211,6 @@
 
     try {
       const sp = new URLSearchParams(global.location.search || '');
-      const qLang = sp.get('lang');
-      if (qLang === 'en' || qLang === 'zh-TW' || qLang === 'zh-tw') {
-        BoardArena.I18N.setLang(qLang === 'en' ? 'en' : 'zh-TW');
-        applyTranslations();
-        renderPlayOkDirectory();
-      }
       const qGame = sp.get('game');
       if (qGame && BoardArena.GAME_CATALOG.some(function (g) { return g.id === qGame; })) {
         stateStore.selectedGameId = qGame;
@@ -230,27 +261,51 @@
       renderLeaderboardView();
     } else if (viewName === 'academy') {
       renderAcademyView();
-      BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy', lang());
+      BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy');
     } else if (viewName === 'lobby') {
-      BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby', lang());
+      BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby');
       renderLobbyGameHall();
     }
   }
 
-  function toggleLanguage() {
-    const next = isEn() ? 'zh-TW' : 'en';
-    BoardArena.I18N.setLang(next);
+  /**
+   * 切換語言並重繪所有畫面。
+   * @param {string} code 語言代碼
+   * @returns {void}
+   */
+  function setLanguage(code) {
+    BoardArena.I18N.setLang(code);
     applyTranslations();
     renderPlayOkDirectory();
     renderLobbyGameHall();
     renderLeaderboardView();
     renderAcademyView();
-    if (stateStore.match) {
-      updateArenaSidePanels();
-      redrawBoard();
+    const phraseGrid = $('cannedPhraseGrid');
+    if (phraseGrid) delete phraseGrid.dataset.ready;
+    if (stateStore.match) refreshMatchLanguage(stateStore.match);
+    BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby');
+    BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy');
+  }
+
+  /**
+   * 語言切換後更新進行中的對局：玩家名稱、提示列、導師面板與棋盤文字。
+   * @param {Object} m 目前的對局
+   * @returns {void}
+   */
+  function refreshMatchLanguage(m) {
+    if (m.mode === 'bot') {
+      const user = BoardArena.Client.getCurrentUser();
+      const humanName = user ? user.displayName : T('ui.guestPlayer');
+      const relabel = function (player) {
+        return { ...player, name: player.isBot ? botDisplayName(m.aiLevel, m.usesEngine) : humanName };
+      };
+      m.players = { 1: relabel(m.players[1]), 2: relabel(m.players[2]) };
     }
-    BoardArena.AdsManager.renderDisplaySlot($('adSlotLobby'), 'lobby', lang());
-    BoardArena.AdsManager.renderDisplaySlot($('adSlotAcademy'), 'academy', lang());
+    updateArenaSidePanels();
+    const mentorStep = m.mentorActive && m.mentorReport ? m.mentorReport.steps[m.mentorStepIndex] : null;
+    updateTacticalGuideBanner(mentorStep ? renderCoachComment(mentorStep) : null);
+    if (m.mentorActive) renderMentorReviewUI();
+    redrawBoard();
   }
 
   function toggleTheme() {
@@ -264,21 +319,67 @@
   }
 
   function applyTranslations() {
-    const T = BoardArena.I18N.t;
-    setText('brandTitle', T('brandTitle'));
-    setText('brandSubtitle', T('brandSubtitle'));
-    setText('backToStudioLink', T('backToStudio'));
-    setText('nav-lobby', T('navLobby'));
-    setText('nav-arena', T('navArena'));
-    setText('nav-leaderboard', T('navLeaderboard'));
-    setText('nav-academy', T('navAcademy'));
-    setText('nav-legal', T('navLegal'));
-    setText('btnSoundToggle', BoardArena.SoundFX.isEnabled() ? T('soundOn') : T('soundOff'));
-    setText('btnThemeToggle', document.body.classList.contains('theme-light') ? T('themeDark') : T('themeLight'));
-    setText('btnLangToggle', isEn() ? '繁體中文' : 'English');
-    setText('twRatingTitle', T('twRatingTitle'));
-    setText('twRatingWarning', T('twRatingWarning'));
+    setText('brandTitle', T('ui.brandTitle'));
+    setText('brandSubtitle', T('ui.brandSubtitle'));
+    setText('backToStudioLink', T('ui.backToStudio'));
+    setText('nav-lobby', T('ui.navLobby'));
+    setText('nav-arena', T('ui.navArena'));
+    setText('nav-leaderboard', T('ui.navLeaderboard'));
+    setText('nav-academy', T('ui.navAcademy'));
+    setText('nav-legal', T('ui.navLegal'));
+    setText('btnSoundToggle', BoardArena.SoundFX.isEnabled() ? T('ui.soundOn') : T('ui.soundOff'));
+    setText('btnThemeToggle', document.body.classList.contains('theme-light') ? T('ui.themeDark') : T('ui.themeLight'));
+    applyStaticTranslations();
+    setText('twRatingTitle', T('ui.twRatingTitle'));
+    setText('twRatingWarning', T('ui.twRatingWarning'));
     renderHeaderAuth();
+  }
+
+  /**
+   * 套用 index.html 內的靜態文字（data-i18n）、頁面語言、標題與語言選單。
+   * @returns {void}
+   */
+  function applyStaticTranslations() {
+    const I18N = BoardArena.I18N;
+    document.documentElement.lang = I18N.getLang();
+    document.title = T('meta.title');
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', T('meta.description'));
+
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = T(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      el.title = T(el.getAttribute('data-i18n-title'));
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      el.setAttribute('aria-label', T(el.getAttribute('data-i18n-aria')));
+    });
+    const contact = $('legalContactText');
+    if (contact) {
+      const parts = T('legal.contactBody').split('{link}');
+      const link = document.createElement('a');
+      link.href = 'https://github.com/Yehtech/board-arena/issues';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.style.color = 'var(--accent-gold)';
+      link.textContent = 'GitHub Issues';
+      contact.replaceChildren(parts[0] || '', link, parts[1] || '');
+    }
+
+    const select = $('langSelect');
+    if (select) {
+      if (select.options.length === 0) {
+        I18N.LANGUAGES.forEach(function (item) {
+          const opt = document.createElement('option');
+          opt.value = item.code;
+          opt.lang = item.code;
+          opt.textContent = item.label;
+          select.appendChild(opt);
+        });
+      }
+      select.value = I18N.getLang();
+    }
   }
 
   function setText(id, txt) {
@@ -295,8 +396,8 @@
     }
     const user = BoardArena.Client.getCurrentUser();
     const serverBadge = BoardArena.Client.isServerOnline()
-      ? '<span class="playok-count-pill" title="Connected to BoardArenaServer.exe">● Server Online</span>'
-      : '<span class="playok-count-pill" style="color:#38bdf8;border-color:#38bdf8;">● Local Arena</span>';
+      ? '<span class="playok-count-pill" title="BoardArenaServer.exe">● ' + T('ui.serverOnline') + '</span>'
+      : '<span class="playok-count-pill" style="color:#38bdf8;border-color:#38bdf8;">● ' + T('ui.localArena') + '</span>';
 
     if (user) {
       container.innerHTML =
@@ -305,16 +406,16 @@
         escapeHtml(user.displayName) +
         '</button>' +
         '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.logout()">' +
-        BoardArena.I18N.t('logoutBtn') +
+        T('ui.logoutBtn') +
         '</button>';
     } else {
       container.innerHTML =
         serverBadge +
         '<span style="font-size:12px;color:var(--text-muted);">' +
-        BoardArena.I18N.t('guestBadge') +
+        T('ui.guestBadge') +
         '</span>' +
         '<button type="button" class="cba-btn cba-btn-gold" id="btnHeaderLogin" onclick="BoardArena.App.openAuthModal()">' +
-        BoardArena.I18N.t('loginBtn') +
+        T('ui.loginBtn') +
         '</button>';
     }
   }
@@ -328,8 +429,8 @@
 
     grid.innerHTML = BoardArena.GAME_CATALOG.map(function (g) {
       const sel = g.id === stateStore.selectedGameId ? ' selected' : '';
-      const title = isEn() ? g.en : g.zh;
-      const mat = isEn() ? g.boardMaterialEn : g.boardMaterialZh;
+      const title = gameName(g.id);
+      const mat = T('game.' + g.id + '.material');
       return (
         '<div class="playok-game-tile' +
         sel +
@@ -340,14 +441,14 @@
         '\')">' +
         '<div class="playok-tile-row1">' +
         '<span class="playok-game-link"><span>' +
-        g.icon +
+        BoardArena.I18N.glyphs(g.icon) +
         '</span><span>' +
         title +
         '</span></span>' +
         (ONLINE_PVP_ENABLED ? '<span class="playok-count-pill">(' + g.baseOnline + ')</span>' : '') +
         '</div>' +
         '<div class="playok-tile-sub">' +
-        g.gridLabel +
+        T('game.' + g.id + '.grid') +
         ' · ' +
         mat +
         '</div>' +
@@ -366,7 +467,7 @@
     const panel = $('lobbyGameHallContent');
     if (!panel) return;
     const g = getCatalogEntry(stateStore.selectedGameId);
-    const title = isEn() ? g.en : g.zh;
+    const title = gameName(g.id);
     const loggedIn = BoardArena.Client.isLoggedIn();
     const user = BoardArena.Client.getCurrentUser();
     const lobbyData = await BoardArena.Client.getLobbyData(g.id);
@@ -379,7 +480,7 @@
         '" onclick="BoardArena.App.setAiLevel(\'' +
         lv.id +
         '\')">' +
-        (isEn() ? lv.en : lv.zh) +
+        (T('ai.' + lv.id)) +
         '<div style="font-size:10.5px;opacity:0.8;" class="cba-tabular">~' +
         lv.badgeRating +
         '</div></button>'
@@ -394,7 +495,7 @@
         '" onclick="BoardArena.App.setTimeControl(\'' +
         tc.id +
         '\')">' +
-        (isEn() ? tc.en : tc.zh) +
+        (T('tc.' + tc.timeClass)) +
         '</button>'
       );
     }).join('');
@@ -404,7 +505,7 @@
       extraGameOpts =
         '<div style="display:flex;gap:6px;align-items:center;font-size:12.5px;">' +
         '<span>' +
-        (isEn() ? 'Board Size:' : '棋盤路數：') +
+        T('ui.boardSize') +
         '</span>' +
         [9, 13, 19]
           .map(function (sz) {
@@ -428,23 +529,23 @@
         '<input type="checkbox" ' +
         (stateStore.gomokuSwapEnabled ? 'checked' : '') +
         ' onchange="BoardArena.App.toggleGomokuSwap(this.checked)" /> ' +
-        (isEn() ? 'Enable 3-Stone Swap Rule (Fair Opening)' : '啟用「三手交換規則」（平衡先手優勢）') +
+        T('ui.enable3StoneSwap') +
         '</label>';
     }
 
     const authNoticeHtml = loggedIn
       ? '<div class="auth-lock-notice" style="border-color:#22c55e;background:rgba(22,163,74,0.14);color:#86efac;">' +
         '<span>✅ ' +
-        (isEn() ? 'Signed in as ' : '已登入帳號：') +
+        T('ui.signedAs') +
         '<b>' +
         escapeHtml(user.displayName) +
-        '</b>（Glicko-2 計分已啟用）</span></div>'
+        '</b>' + T('ui.ratingEnabled') + '</span></div>'
       : '<div class="auth-lock-notice">' +
         '<span>' +
-        BoardArena.I18N.t('loginRequiredBanner') +
+        T('ui.loginRequiredBanner') +
         '</span>' +
         '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.openAuthModal()">' +
-        BoardArena.I18N.t('loginBtn') +
+        T('ui.loginBtn') +
         '</button></div>';
 
     const roomRows = (lobbyData.rooms || [])
@@ -466,19 +567,19 @@
           '<td>' +
           (rm.guestName
             ? escapeHtml(rm.guestName) + ' <span class="cba-tabular">(' + Math.round(rm.guestRating || 1500) + ')</span>'
-            : '<span style="color:#4ade80;">' + (isEn() ? 'Open Seat' : '等待對手中...') + '</span>') +
+            : '<span style="color:#4ade80;">' + T('ui.openSeat') + '</span>') +
           '</td>' +
           '<td>' +
           (waiting
             ? '<button type="button" class="cba-btn cba-btn-emerald" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.handleJoinRoom(\'' +
               escapeHtml(rm.id) +
               '\')">' +
-              (isEn() ? 'Join (Login)' : '加入對戰') +
+              T('ui.joinLogin') +
               '</button>'
             : '<button type="button" class="cba-btn" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.spectateDemoTable(\'' +
               g.id +
               '\')">👁️ ' +
-              (isEn() ? 'Watch' : '觀戰') +
+              T('ui.watch') +
               ' (' +
               (rm.spectators || 2) +
               ')</button>') +
@@ -492,21 +593,21 @@
       '<div class="cba-panel-header">' +
       '<div>' +
       '<div class="cba-panel-title">' +
-      g.icon +
+      BoardArena.I18N.glyphs(g.icon) +
       ' ' +
       title +
       (ONLINE_PVP_ENABLED
-        ? ' <span class="cba-tabular">(' + g.baseOnline + ' ' + BoardArena.I18N.t('onlineUnit') + ')</span>'
+        ? ' <span class="cba-tabular">(' + g.baseOnline + ' ' + T('ui.onlineUnit') + ')</span>'
         : '') +
       '</div>' +
       '<div style="font-size:12.5px;color:var(--text-muted);">' +
-      (isEn() ? g.boardMaterialEn : g.boardMaterialZh) +
+      (T('game.' + g.id + '.material')) +
       '</div>' +
       '</div>' +
       '<button type="button" class="cba-btn" onclick="BoardArena.App.openRulesFor(\'' +
       g.id +
       '\')">📖 ' +
-      (isEn() ? 'Rules & Guide' : '規則說明') +
+      T('ui.rulesGuide') +
       '</button>' +
       '</div>' +
       '<div class="mode-launch-grid">' +
@@ -514,14 +615,14 @@
       '<div class="mode-box">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<b style="font-size:15px;">' +
-      BoardArena.I18N.t('playVsBot') +
+      T('ui.playVsBot') +
       '</b>' +
       '<span style="font-size:11.5px;color:#4ade80;font-weight:700;">' +
-      (isEn() ? 'No Login Needed' : '免登入直接玩') +
+      T('ui.noLoginNeeded') +
       '</span>' +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-muted);">' +
-      (isEn() ? 'Select Computer Difficulty (4 Tiers):' : '選擇電腦對手強度（簡單／普通／困難／大師）：') +
+      T('ui.selectComputerDifficulty4') +
       '</div>' +
       '<div class="ai-tier-group">' +
       aiBtns +
@@ -531,12 +632,12 @@
       '<button type="button" class="tier-btn' +
       (stateStore.selectedHumanSide === 1 ? ' active' : '') +
       '" style="padding:5px 10px;" onclick="BoardArena.App.setHumanSide(1)">' +
-      (isEn() ? 'Play First' : '執先手') +
+      T('ui.playFirst') +
       '</button>' +
       '<button type="button" class="tier-btn' +
       (stateStore.selectedHumanSide === 2 ? ' active' : '') +
       '" style="padding:5px 10px;" onclick="BoardArena.App.setHumanSide(2)">' +
-      (isEn() ? 'Play Second' : '執後手') +
+      T('ui.playSecond') +
       '</button>' +
       '</div>' +
       extraGameOpts +
@@ -544,12 +645,12 @@
       (ONLINE_PVP_ENABLED
         ? ''
         : '<div style="font-size:12px;color:var(--text-muted);">' +
-          (isEn() ? 'Time Control:' : '對局時限：') +
+          T('ui.timeControl') +
           '</div><div class="tc-pill-group">' +
           tcBtns +
           '</div>') +
       '<button type="button" class="cba-btn cba-btn-gold" id="btnStartBotMatch" onclick="BoardArena.App.startBotFromLobby()">▶️ ' +
-      (isEn() ? 'Start vs Computer' : '開始單人對戰電腦') +
+      T('ui.startVsComputer') +
       '</button>' +
       '</div>' +
       // PvP 區塊會自行關閉 mode-launch-grid 並接上即時對局桌；關閉時只需關閉 grid
@@ -563,10 +664,10 @@
       '<div class="mode-box pvp-gated">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<b style="font-size:15px;">⚔️ ' +
-      (isEn() ? 'Two-Player Ranked Arena' : '雙人連線與同機計分對戰') +
+      T('ui.twoPlayerRankedArena') +
       '</b>' +
       '<span style="font-size:11.5px;color:#38bdf8;font-weight:800;">🔒 ' +
-      (isEn() ? 'Login Required' : '需登入帳號') +
+      T('ui.loginRequired') +
       '</span>' +
       '</div>' +
       authNoticeHtml +
@@ -575,34 +676,34 @@
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
       '<button type="button" class="cba-btn cba-btn-emerald" id="btnQuickPvp" onclick="BoardArena.App.handleQuickMatch()">' +
-      BoardArena.I18N.t('playPvpQuick') +
+      T('ui.playPvpQuick') +
       '</button>' +
       '<button type="button" class="cba-btn" id="btnCreateRoom" onclick="BoardArena.App.handleCreateRoom()">' +
-      BoardArena.I18N.t('playPvpRoom') +
+      T('ui.playPvpRoom') +
       '</button>' +
       '</div>' +
       '<button type="button" class="cba-btn" id="btnLocalPvp" onclick="BoardArena.App.handleStartLocalPvp()">' +
-      BoardArena.I18N.t('playPvpLocal') +
+      T('ui.playPvpLocal') +
       '</button>' +
       '</div>' +
       '</div>' +
       // PlayOK Live Tables
       '<div style="margin-top:8px;">' +
       '<div style="font-weight:800;font-size:13.5px;margin-bottom:8px;color:var(--text-secondary);">📋 ' +
-      (isEn() ? 'Live Game Tables & Rooms' : '即時對局桌列表（可開新桌、加入對局或觀戰）') +
+      T('ui.liveGameTablesRooms') +
       '</div>' +
       '<div style="overflow-x:auto;">' +
       '<table class="cba-table">' +
       '<thead><tr><th>' +
-      (isEn() ? 'Table' : '桌號') +
+      T('ui.table') +
       '</th><th>' +
-      (isEn() ? 'Clock' : '時限') +
+      T('ui.clock') +
       '</th><th>' +
-      (isEn() ? 'Seat 1' : '先手席') +
+      T('ui.seat1') +
       '</th><th>' +
-      (isEn() ? 'Seat 2' : '後手席') +
+      T('ui.seat2') +
       '</th><th>' +
-      (isEn() ? 'Action' : '操作') +
+      T('ui.action') +
       '</th></tr></thead>' +
       '<tbody>' +
       roomRows +
@@ -637,13 +738,11 @@
       }) || BoardArena.AI_LEVELS[1];
 
     const user = BoardArena.Client.getCurrentUser();
-    const humanName = user ? user.displayName : isEn() ? 'Guest Player' : '訪客棋士';
+    const humanName = user ? user.displayName : T('ui.guestPlayer');
     // 西洋棋／象棋／將棋的困難與大師難度，在支援的瀏覽器改用 Fairy-Stockfish 引擎
     const usesEngine = Boolean(BoardArena.FSF && BoardArena.FSF.shouldUseEngine(gameId, lvInfo.id));
     if (usesEngine) BoardArena.FSF.warmUp(gameId, lvInfo.id);
-    const botName =
-      (isEn() ? 'Computer AI (' + lvInfo.en + ')' : '電腦對手（' + lvInfo.zh + '）') +
-      (usesEngine ? ' · Fairy-Stockfish' : '');
+    const botName = botDisplayName(lvInfo.id, usesEngine);
 
     const side = humanSide === 2 ? 2 : 1;
     stateStore.match = {
@@ -658,6 +757,7 @@
       replayIndex: null,
       humanSide: side,
       aiLevel: lvInfo.id,
+      usesEngine: usesEngine,
       timeControl: tcObj.id,
       rated: false,
       clocksMs: { 1: tcObj.initialMs, 2: tcObj.initialMs },
@@ -722,7 +822,7 @@
     requireLoginOrRun(async function () {
       try {
         const res = await BoardArena.Client.joinPvpRoom(roomId);
-        const oppName = (res.room && res.room.hostName) || 'Online Challenger';
+        const oppName = (res.room && res.room.hostName) || T('ui.onlineChallenger');
         launchAuthenticatedPvpMatch('pvp_online', oppName, (res.room && res.room.hostRating) || 1650, res.gameId || null);
       } catch (err) {
         if (err.status === 401) openAuthModal(true);
@@ -804,7 +904,7 @@
 
   function spectateDemoTable(gameId) {
     startBotMatch(gameId, 'master', 1);
-    addChatMessage('System', isEn() ? 'Entered table — click any friendly piece to inspect legal moves!' : '已進入棋桌！點擊己方棋子即可檢視所有合法走位與可吃目標。');
+    addChatMessage(T('ui.chatSystem'), T('ui.enteredTableClickAny'));
   }
 
   /* =========================================================================
@@ -885,9 +985,7 @@
       } else {
         BoardArena.SoundFX.playIllegal();
         updateTacticalGuideBanner(
-          isEn()
-            ? '⚠️ That point is not a legal move (occupied, Ko, suicide, or no outflank).'
-            : '⚠️ 此位置不可落子（已有棋子、未夾吃、打劫禁著或禁入自殺點）！'
+          T('ui.pointNotLegalMove')
         );
       }
       return;
@@ -941,30 +1039,14 @@
       }).length;
       const emptyCount = moves.length - capCount;
       updateTacticalGuideBanner(
-        isEn()
-          ? '✅ Piece selected: ' +
-              moves.length +
-              ' legal destination(s) highlighted (🟢 Empty: ' +
-              emptyCount +
-              ' · 🎯 Capture: ' +
-              capCount +
-              ')'
-          : '✅ 已選取棋子：共顯示 ' +
-              moves.length +
-              ' 個合法走位（🟢 翠綠圓點＝可走空位 ' +
-              emptyCount +
-              ' 處 ｜ 🎯 鮮紅準星＝可吃敵子 ' +
-              capCount +
-              ' 處）'
+        T('ui.pieceSelectedHint', { total: moves.length, empty: emptyCount, capture: capCount })
       );
     } else {
-      let reason = isEn()
-        ? '⚠️ This piece currently has 0 legal moves (blocked, pinned to King/General, or another piece must capture).'
-        : '⚠️ 此棋子目前沒有合法走位（受蹩馬腿／塞象眼／應將護駕，或場上有其他必須強制吃子的棋）！';
+      let reason = T('ui.pieceCurrently0Legal');
       if (rule.canSelectSource) {
         const info = rule.canSelectSource(gs, sourceDesc, gs.currentPlayer);
-        if (info && (info.reasonZh || info.reasonEn)) {
-          reason = '⚠️ ' + (isEn() ? info.reasonEn || info.reasonZh : info.reasonZh || info.reasonEn);
+        if (info && info.reason) {
+          reason = '⚠️ ' + BoardArena.I18N.render(info.reason);
         }
       }
       updateTacticalGuideBanner(reason);
@@ -1232,21 +1314,26 @@
     }
     const m = stateStore.match;
     if (m.gameState.status === 'scoring') {
-      el.textContent = isEn()
-        ? '☯️ Scoring Phase: Click dead stones to mark/unmark, then click "Confirm Score"!'
-        : '☯️ 終局點目階段：請點擊盤上死子標記紅叉，完成後點擊右側「確認死子並結算勝負」！';
+      el.textContent = T('ui.scoringPhaseClickDead');
       return;
     }
     if (m.gameState.inCheck) {
-      el.textContent = isEn()
-        ? '🔥 CHECK! Select a piece to defend or move your King/General!'
-        : '🔥 將軍警示！請點擊己方棋子查看可解將的合法走位！';
+      el.textContent = T('ui.checkSelectPieceDefend');
       return;
     }
     el.textContent =
       m.rule.selectionMode === 'piece'
-        ? BoardArena.I18N.t('selectHintPiece')
-        : BoardArena.I18N.t('selectHintDrop');
+        ? T('ui.selectHintPiece')
+        : T('ui.selectHintDrop');
+  }
+
+  /**
+   * 將導師評語（訊息陣列）組成目前語言的文字。
+   * @param {{comment: Array<Object>}} step 復盤步驟
+   * @returns {string} 評語文字
+   */
+  function renderCoachComment(step) {
+    return step.comment.map(BoardArena.I18N.render).join('');
   }
 
   function updateArenaSidePanels() {
@@ -1257,7 +1344,7 @@
     const side1 = m.rule.sideLabels[1];
     const side2 = m.rule.sideLabels[2];
 
-    setText('arenaGameHeader', cat.icon + ' ' + (isEn() ? cat.en : cat.zh) + ' · ' + (m.rated ? 'Ranked PvP' : 'Single Player'));
+    setText('arenaGameHeader', BoardArena.I18N.glyphs(cat.icon) + ' ' + gameName(cat.id) + ' · ' + (m.rated ? T('ui.rankedPvp') : T('ui.singlePlayer')));
 
     // Clock cards
     const p1Card = $('clockCardP1');
@@ -1265,8 +1352,8 @@
     if (p1Card) p1Card.classList.toggle('active-turn', gs.status === 'playing' && gs.currentPlayer === 1);
     if (p2Card) p2Card.classList.toggle('active-turn', gs.status === 'playing' && gs.currentPlayer === 2);
 
-    setText('playerNameP1', (isEn() ? side1.en : side1.zh) + ' · ' + m.players[1].name);
-    setText('playerNameP2', (isEn() ? side2.en : side2.zh) + ' · ' + m.players[2].name);
+    setText('playerNameP1', T(side1) + ' · ' + m.players[1].name);
+    setText('playerNameP2', T(side2) + ' · ' + m.players[2].name);
     setText('playerRatingP1', 'Glicko-2: ' + m.players[1].rating);
     setText('playerRatingP2', 'Glicko-2: ' + m.players[2].rating);
     updateClockDomOnly();
@@ -1278,14 +1365,14 @@
       if (m.gameId === 'go' && gs.status === 'playing') {
         btns.push(
           '<button type="button" class="cba-btn" onclick="BoardArena.App.triggerSpecialMove(\'pass\')">' +
-            BoardArena.I18N.t('passTurn') +
+            T('ui.passTurn') +
             '</button>'
         );
       }
       if (m.gameId === 'go' && gs.status === 'scoring') {
         btns.push(
           '<button type="button" class="cba-btn cba-btn-emerald" onclick="BoardArena.App.triggerSpecialMove(\'confirm_score\')">✅ ' +
-            (isEn() ? 'Confirm Dead Stones & Score' : '確認死子並結算勝負') +
+            T('ui.confirmDeadStonesScore') +
             '</button>'
         );
       }
@@ -1294,7 +1381,7 @@
         if (legal.some(function (x) { return x.action === 'swap'; })) {
           btns.push(
             '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.triggerSpecialMove(\'swap\')">' +
-              BoardArena.I18N.t('swapColors') +
+              T('ui.swapColors') +
               '</button>'
           );
         }
@@ -1304,7 +1391,7 @@
         if (legal.length === 1 && legal[0].action === 'pass') {
           btns.push(
             '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.triggerSpecialMove(\'pass\')">⏭️ ' +
-              (isEn() ? 'No Legal Dice Move (Pass)' : '骰點無路可走（跳過回合）') +
+              T('ui.noLegalDiceMove') +
               '</button>'
           );
         }
@@ -1312,7 +1399,7 @@
       if (m.mode === 'bot' && gs.status === 'playing') {
         btns.push(
           '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.watchAdForHint()">' +
-            BoardArena.I18N.t(BoardArena.AdsManager.isAdsEnabled() ? 'rewardedHint' : 'freeHint') +
+            T(BoardArena.AdsManager.isAdsEnabled() ? 'ui.rewardedHint' : 'ui.freeHint') +
             '</button>'
         );
       }
@@ -1329,7 +1416,7 @@
         });
       undoBtn.disabled = !canUndo;
       undoBtn.textContent =
-        BoardArena.I18N.t('undoMove') + (m.undoCount > 0 ? ' (' + m.undoCount + ')' : '');
+        T('ui.undoMove') + (m.undoCount > 0 ? ' (' + m.undoCount + ')' : '');
       undoBtn.style.display = m.mode === 'bot' ? 'inline-flex' : 'none';
     }
 
@@ -1337,7 +1424,7 @@
     if (mentorBtn) {
       mentorBtn.disabled = m.moveHistory.length === 0;
       mentorBtn.classList.toggle('active', !!m.mentorActive);
-      mentorBtn.textContent = BoardArena.I18N.t('mentorReview');
+      mentorBtn.textContent = T('ui.mentorReview');
     }
 
     // Move List (with Mentor Grade badges when Mentor Review is active)
@@ -1370,7 +1457,7 @@
             '">' +
             item.seq +
             '. ' +
-            escapeHtml(item.notation) +
+            escapeHtml(BoardArena.I18N.notation(item.notation)) +
             badge +
             '</div>'
           );
@@ -1390,9 +1477,7 @@
           '<button type="button" class="cba-btn cba-btn-emerald" style="width:100%;" onclick="BoardArena.App.resumeFromReplayIndex(' +
           m.replayIndex +
           ', true)">' +
-          (isEn()
-            ? '🔀 Resume Playing vs AI from Move #' + (m.replayIndex + 1)
-            : '🔀 從此局面（第 ' + (m.replayIndex + 1) + ' 手前）繼續對戰電腦') +
+          T('ui.resumeVsAiFromMove', { move: m.replayIndex + 1 }) +
           '</button>';
       } else {
         branchBar.style.display = 'none';
@@ -1410,7 +1495,7 @@
             '<button type="button" class="cba-btn" style="font-size:11.5px;padding:5px 7px;" onclick="BoardArena.App.sendCannedPhrase(\'' +
             p.id +
             '\')">' +
-            escapeHtml(isEn() ? p.en : p.zh) +
+            escapeHtml(p.text) +
             '</button>'
           );
         })
@@ -1437,7 +1522,7 @@
     if (!m || m.mode !== 'bot' || m.gameState.status !== 'playing') return;
     // Temporarily release lock for explicit player-initiated Rewarded Hint in Single-Player mode (Spec §10)
     BoardArena.AdsManager.setMatchLock(false);
-    BoardArena.AdsManager.requestRewardedHint(lang(), function () {
+    BoardArena.AdsManager.requestRewardedHint(function () {
       BoardArena.AdsManager.setMatchLock(true);
       const top = BoardArena.AI.getTopHints(m.gameId, m.gameState, 3);
       m.hints = top;
@@ -1447,9 +1532,7 @@
         redrawBoard();
       }
       updateTacticalGuideBanner(
-        isEn()
-          ? '🎯 Master AI Top-' + top.length + ' Hint(s) unlocked on board (#1 is strongest)!'
-          : '🎯 已解鎖【大師級 AI 最佳著點提示】（棋盤上 #1 為首選妙手）！'
+        T('ui.masterHintUnlocked')
       );
     });
   }
@@ -1476,7 +1559,7 @@
         m.gameState.endReason = 'draw_agreed';
         onMatchEnded(0, 'draw_agreed');
       } else {
-        addChatMessage('Computer', isEn() ? 'Computer declines the draw and plays on.' : '電腦對手婉拒提和，希望繼續切磋！');
+        addChatMessage(T('ui.chatComputer'), T('ui.computerDeclinesDrawPlays'));
       }
       return;
     }
@@ -1490,7 +1573,7 @@
     const m = stateStore.match;
     if (!m) return;
     closeDynamicModal();
-    BoardArena.AdsManager.maybeShowInterstitial(lang(), function () {
+    BoardArena.AdsManager.maybeShowInterstitial(function () {
       if (m.mode === 'bot') {
         startBotMatch(m.gameId, m.aiLevel, m.humanSide === 1 ? 2 : 1);
       } else {
@@ -1528,9 +1611,7 @@
     if (m.mode !== 'bot') {
       BoardArena.SoundFX.playIllegal();
       updateTacticalGuideBanner(
-        isEn()
-          ? '⚠️ Undo is only available in Single-Player vs AI mode!'
-          : '⚠️ 僅「單人對戰電腦」模式支援自由悔棋；雙人競技模式為維護天梯公平性禁止悔棋！'
+        T('ui.undoOnlyAvailableSingle')
       );
       return false;
     }
@@ -1550,9 +1631,7 @@
     if (targetMoveIdx < 0) {
       BoardArena.SoundFX.playIllegal();
       updateTacticalGuideBanner(
-        isEn()
-          ? 'ℹ️ No player move to undo yet!'
-          : 'ℹ️ 目前尚無您的落子紀錄可供悔棋！'
+        T('ui.noPlayerMoveUndo')
       );
       return false;
     }
@@ -1576,17 +1655,7 @@
     updateArenaSidePanels();
     redrawBoard();
     updateTacticalGuideBanner(
-      isEn()
-        ? '↩️ Undid move! Restored to before Move #' +
-            (targetMoveIdx + 1) +
-            ' (Undo count: ' +
-            m.undoCount +
-            '). Your turn!'
-        : '↩️ 已悔棋回到第 ' +
-            (targetMoveIdx + 1) +
-            ' 手前（累計悔棋 ' +
-            m.undoCount +
-            ' 次），輪到您重新落子！'
+      T('ui.undoDone', { move: targetMoveIdx + 1, count: m.undoCount })
     );
 
     if (m.gameState.currentPlayer !== m.humanSide) {
@@ -1625,14 +1694,7 @@
     updateArenaSidePanels();
     redrawBoard();
     updateTacticalGuideBanner(
-      isEn()
-        ? '🔀 Resumed game from before Move #' +
-            (idx + 1) +
-            (savedHints.length > 0 ? ' (Mentor #1 best move highlighted on board!)' : '')
-        : '🔀 已切換回第 ' +
-            (idx + 1) +
-            ' 手前局面繼續對局' +
-            (savedHints.length > 0 ? '（棋盤已保留導師推薦 #1 最佳著點提示）！' : '！')
+      T(savedHints.length > 0 ? 'ui.resumedWithHint' : 'ui.resumed', { move: idx + 1 })
     );
 
     if (m.gameState.currentPlayer !== m.humanSide) {
@@ -1649,9 +1711,7 @@
     if (!m || m.moveHistory.length === 0) {
       BoardArena.SoundFX.playIllegal();
       updateTacticalGuideBanner(
-        isEn()
-          ? 'ℹ️ Play at least 1 move first to launch AI Mentor Review!'
-          : 'ℹ️ 請先進行至少 1 手對局，即可啟動【🎓 導師復盤分析】！'
+        T('ui.playLeast1Move')
       );
       return null;
     }
@@ -1724,7 +1784,7 @@
     updateArenaSidePanels();
     renderMentorReviewUI();
     redrawBoard();
-    updateTacticalGuideBanner(isEn() ? step.commentEn : step.commentZh);
+    updateTacticalGuideBanner(renderCoachComment(step));
   }
 
   function retryFromMentorStep(stepIdx) {
@@ -1749,12 +1809,12 @@
     const st2 = rep.stats[2];
 
     const gradeMeta = {
-      best: { icon: '🌟', zh: '妙手 / 最佳著', en: 'Best Move' },
-      good: { icon: '✅', zh: '好棋 / 穩健', en: 'Good Move' },
-      inaccuracy: { icon: '⚠️', zh: '緩手 / 疑問手', en: 'Inaccuracy' },
-      mistake: { icon: '❌', zh: '失誤', en: 'Mistake' },
-      blunder: { icon: '💥', zh: '敗著 / 大惡手', en: 'Blunder' }
-    }[step.grade] || { icon: '✅', zh: '好棋', en: 'Good' };
+      best: { icon: '🌟', key: 'grade.best' },
+      good: { icon: '✅', key: 'grade.good' },
+      inaccuracy: { icon: '⚠️', key: 'grade.inaccuracy' },
+      mistake: { icon: '❌', key: 'grade.mistake' },
+      blunder: { icon: '💥', key: 'grade.blunder' }
+    }[step.grade] || { icon: '✅', key: 'grade.good' };
 
     // 1. Right-Column Quick Step Card
     if (quick) {
@@ -1763,39 +1823,39 @@
         '<div class="mentor-step-card">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">' +
         '<b>🎓 ' +
-        (isEn() ? 'Move #' + step.seq + ' Coach Diagnosis' : '第 ' + step.seq + ' 手・導師診斷') +
+        T('ui.coachDiagnosis', { move: step.seq }) +
         '</b>' +
         '<span class="mentor-badge ' +
         step.grade +
         '">' +
         gradeMeta.icon +
         ' ' +
-        (isEn() ? gradeMeta.en : gradeMeta.zh) +
+        T(gradeMeta.key) +
         '</span>' +
         '</div>' +
         '<div style="font-size:12px;color:var(--text-secondary);" class="cba-tabular">' +
-        (isEn() ? 'Played: ' : '實戰落子：') +
+        T('ui.played') +
         '<b style="color:#fca5a5;">' +
-        escapeHtml(step.notation) +
+        escapeHtml(BoardArena.I18N.notation(step.notation)) +
         '</b> ｜ ' +
-        (isEn() ? 'Mentor #1: ' : '導師正解：') +
+        T('ui.mentor1') +
         '<b style="color:#4ade80;">' +
-        escapeHtml(step.bestNotation) +
+        escapeHtml(BoardArena.I18N.notation(step.bestNotation)) +
         '</b>' +
         '</div>' +
         '<div style="line-height:1.45;">' +
-        escapeHtml(isEn() ? step.commentEn : step.commentZh) +
+        escapeHtml(renderCoachComment(step)) +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;">' +
         (m.mode === 'bot'
           ? '<button type="button" class="cba-btn cba-btn-emerald" style="padding:4px 9px;font-size:11.5px;flex:1;" onclick="BoardArena.App.retryFromMentorStep(' +
             m.mentorStepIndex +
             ')">🔄 ' +
-            (isEn() ? 'Retry From Move #' + step.seq : '回到第 ' + step.seq + ' 手重下') +
+            T('ui.retryFromMove', { move: step.seq }) +
             '</button>'
           : '') +
         '<button type="button" class="cba-btn cba-btn-ghost" style="padding:4px 9px;font-size:11.5px;" onclick="BoardArena.App.closeMentorReview()">✕ ' +
-        (isEn() ? 'Exit Review' : '結束復盤') +
+        T('ui.exitReview') +
         '</button>' +
         '</div>' +
         '</div>';
@@ -1860,7 +1920,7 @@
           '<title>#' +
           st.seq +
           ' ' +
-          escapeHtml(st.notation) +
+          escapeHtml(BoardArena.I18N.notation(st.notation)) +
           ' (' +
           st.winAfterP1 +
           '%)</title></circle>'
@@ -1871,9 +1931,7 @@
     const turningListHtml =
       rep.turningPoints.length === 0
         ? '<div style="font-size:12.5px;color:#86efac;">✨ ' +
-          (isEn()
-            ? 'Zero major mistakes detected! Both sides played high-accuracy moves.'
-            : '本局表現極為穩健，未出現重大失誤或敗著！') +
+          T('ui.zeroMajorMistakesDetected') +
           '</div>'
         : rep.turningPoints
             .map(function (tp) {
@@ -1890,12 +1948,12 @@
                 '">#' +
                 tp.seq +
                 ' ' +
-                escapeHtml(tp.notation) +
+                escapeHtml(BoardArena.I18N.notation(tp.notation)) +
                 '</span> ' +
                 '<span style="font-size:11.5px;color:var(--text-secondary);">→ ' +
-                (isEn() ? 'Best: ' : '應改走 ') +
+                T('ui.best') +
                 '<b style="color:#4ade80;">' +
-                escapeHtml(tp.bestNotation) +
+                escapeHtml(BoardArena.I18N.notation(tp.bestNotation)) +
                 '</b></span>' +
                 '</div>' +
                 '<span class="cba-tabular" style="color:#f87171;font-weight:800;">-' +
@@ -1911,36 +1969,32 @@
       '<div class="cba-panel-header">' +
       '<div>' +
       '<div class="cba-panel-title">🎓 ' +
-      (isEn()
-        ? 'AI Mentor Post-Game Review & Win-Rate Diagnostics'
-        : 'AI 導師復盤分析室（逐手勝率走勢・失誤診斷・最佳著點對照）') +
+      T('ui.aiMentorPostGame') +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-muted);">' +
-      (isEn()
-        ? 'Green solid arrow [★正解] on board = Mentor #1 choice · Red dashed arrow [實戰] = Actual suboptimal move played'
-        : '棋盤上【★正解 綠箭頭】為導師首選最佳走法 ｜ 【實戰 紅虛線】為該手實際落子（點擊任意手數或曲線節點可切換局面並直接重下）') +
+      T('ui.greenSolidArrowBoard') +
       '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
       '<button type="button" class="cba-btn" onclick="BoardArena.App.inspectMentorStep(' +
       Math.max(0, m.mentorStepIndex - 1) +
       ')">◀ ' +
-      (isEn() ? 'Prev Move' : '上一手') +
+      T('ui.prevMove') +
       '</button>' +
       '<button type="button" class="cba-btn" onclick="BoardArena.App.inspectMentorStep(' +
       Math.min(rep.steps.length - 1, m.mentorStepIndex + 1) +
       ')">' +
-      (isEn() ? 'Next Move' : '下一手') +
+      T('ui.nextMove') +
       ' ▶</button>' +
       (m.mode === 'bot'
         ? '<button type="button" class="cba-btn cba-btn-emerald" id="btnMentorRetryStep" onclick="BoardArena.App.retryFromMentorStep(' +
           m.mentorStepIndex +
           ')">🔄 ' +
-          (isEn() ? 'Retry From Move #' + step.seq : '從第 ' + step.seq + ' 手重下') +
+          T('ui.retryFromMove', { move: step.seq }) +
           '</button>'
         : '') +
       '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeMentorReview()">✕ ' +
-      (isEn() ? 'Close' : '關閉復盤') +
+      T('ui.close') +
       '</button>' +
       '</div>' +
       '</div>' +
@@ -1948,15 +2002,15 @@
       // Left: Player 1 & Player 2 Accuracy & Move Grade Breakdown
       '<div class="mentor-stat-card">' +
       '<div style="font-weight:800;font-size:13.5px;color:var(--accent-gold-bright);">📊 ' +
-      (isEn() ? 'Accuracy & Move Quality' : '雙方行棋精準度與著法評級') +
+      T('ui.accuracyMoveQuality') +
       '</div>' +
       '<div style="padding:6px 8px;background:var(--bg-surface);border-radius:7px;">' +
       '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;">' +
       '<span>' +
-      escapeHtml((isEn() ? side1.en : side1.zh) + ' · ' + m.players[1].name) +
+      escapeHtml(T(side1) + ' · ' + m.players[1].name) +
       '</span>' +
       '<span class="cba-tabular" style="color:#4ade80;">' +
-      (isEn() ? 'Accuracy: ' : '精準度 ') +
+      T('ui.accuracy') +
       st1.accuracy +
       '%</span>' +
       '</div>' +
@@ -1981,10 +2035,10 @@
       '<div style="padding:6px 8px;background:var(--bg-surface);border-radius:7px;">' +
       '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;">' +
       '<span>' +
-      escapeHtml((isEn() ? side2.en : side2.zh) + ' · ' + m.players[2].name) +
+      escapeHtml(T(side2) + ' · ' + m.players[2].name) +
       '</span>' +
       '<span class="cba-tabular" style="color:#fbbf24;">' +
-      (isEn() ? 'Accuracy: ' : '精準度 ') +
+      T('ui.accuracy') +
       st2.accuracy +
       '%</span>' +
       '</div>' +
@@ -2011,10 +2065,10 @@
       '<div class="mentor-stat-card">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<span style="font-weight:800;font-size:13.5px;color:var(--accent-gold-bright);">📈 ' +
-      (isEn() ? 'First-Player Win Probability Curve (%)' : '全局勝率走勢曲線（點擊節點跳轉該手局面）') +
+      T('ui.firstPlayerWinProbability') +
       '</span>' +
       '<span class="cba-tabular" style="font-size:12px;color:var(--text-muted);">' +
-      (isEn() ? 'Move #' + step.seq + ' Win Rate: ' : '第 ' + step.seq + ' 手後先手勝率：') +
+      T('ui.winRateAtMove', { move: step.seq }) +
       '<b style="color:#fde047;">' +
       step.winAfterP1 +
       '%</b></span>' +
@@ -2054,7 +2108,7 @@
       // Right: Key Turning Points List
       '<div class="mentor-stat-card">' +
       '<div style="font-weight:800;font-size:13.5px;color:var(--accent-gold-bright);">🔑 ' +
-      (isEn() ? 'Key Turning Points & Mistakes' : '關鍵勝負轉折點（點擊檢視正解）') +
+      T('ui.keyTurningPointsMistakes') +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:135px;">' +
       turningListHtml +
@@ -2095,7 +2149,7 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).catch(function () {});
     }
-    addChatMessage('System', (isEn() ? 'Copied share link: ' : '已複製棋譜分享連結：') + url);
+    addChatMessage(T('ui.chatSystem'), T('ui.copiedShareLink') + url);
   }
 
   function sendCannedPhrase(phraseId) {
@@ -2107,10 +2161,8 @@
     if (!ph) return;
     const sender = BoardArena.Client.getCurrentUser()
       ? BoardArena.Client.getCurrentUser().displayName
-      : isEn()
-      ? 'Player'
-      : '玩家';
-    addChatMessage(sender, isEn() ? ph.en : ph.zh);
+      : T('ui.player');
+    addChatMessage(sender, ph.text);
   }
 
   function addChatMessage(sender, text) {
@@ -2143,27 +2195,23 @@
         '" onclick="BoardArena.App.setLeaderboardFilter(\'' +
         g.id +
         '\', null, null)">' +
-        g.icon +
+        BoardArena.I18N.glyphs(g.icon) +
         ' ' +
-        (isEn() ? g.en : g.zh) +
+        (gameName(g.id)) +
         '</button>'
       );
     }).join('');
 
-    const tcPills = [
-      { id: 'bullet', zh: '超快棋 (3+2)', en: 'Bullet (3+2)' },
-      { id: 'blitz', zh: '快棋 (5+3)', en: 'Blitz (5+3)' },
-      { id: 'classical', zh: '慢棋 (10+5)', en: 'Classical (10+5)' }
-    ]
+    const tcPills = BoardArena.TIME_CONTROLS
       .map(function (tc) {
-        const act = tc.id === stateStore.leaderboardTimeClass ? ' active' : '';
+        const act = tc.timeClass === stateStore.leaderboardTimeClass ? ' active' : '';
         return (
           '<button type="button" class="cba-btn' +
           act +
           '" onclick="BoardArena.App.setLeaderboardFilter(null, \'' +
-          tc.id +
+          tc.timeClass +
           '\', null)">' +
-          (isEn() ? tc.en : tc.zh) +
+          T('tc.' + tc.timeClass) +
           '</button>'
         );
       })
@@ -2197,8 +2245,8 @@
           'L)</td>' +
           '<td>' +
           (e.qualified
-            ? '<span style="color:#4ade80;font-weight:700;">✓ 正式榜</span>'
-            : '<span style="color:#fbbf24;">暫定 (RD≥110/未滿20盤)</span>') +
+            ? '<span style="color:#4ade80;font-weight:700;">✓ ' + T('ui.lbOfficial') + '</span>'
+            : '<span style="color:#fbbf24;">' + T('ui.lbProvisional') + '</span>') +
           '</td>' +
           '</tr>'
         );
@@ -2217,23 +2265,23 @@
       '<button type="button" class="cba-btn' +
       (stateStore.leaderboardScope === 'all' ? ' active' : '') +
       '" onclick="BoardArena.App.setLeaderboardFilter(null, null, \'all\')">' +
-      (isEn() ? 'All Active Players' : '全體活躍排行') +
+      T('ui.allActivePlayers') +
       '</button>' +
       '<button type="button" class="cba-btn' +
       (stateStore.leaderboardScope === 'qualified' ? ' active' : '') +
       '" onclick="BoardArena.App.setLeaderboardFilter(null, null, \'qualified\')">' +
-      (isEn() ? 'Official (≥20 Games & RD<110)' : '正式上榜門檻 (≥20盤 & RD<110)') +
+      T('ui.official20GamesRd') +
       '</button>' +
       '</div>' +
       '</div>' +
       '<div style="overflow-x:auto;">' +
       '<table class="cba-table">' +
       '<thead><tr><th>#</th><th>' +
-      (isEn() ? 'Player' : '棋士暱稱') +
+      T('ui.player2') +
       '</th><th>Glicko-2</th><th>RD</th><th>' +
-      (isEn() ? 'Games' : '總對局') +
+      T('ui.games') +
       '</th><th>' +
-      (isEn() ? 'Status' : '資格狀態') +
+      T('ui.status') +
       '</th></tr></thead>' +
       '<tbody>' +
       rows +
@@ -2254,9 +2302,9 @@
         '" onclick="BoardArena.App.openRulesFor(\'' +
         item.id +
         '\')">' +
-        item.icon +
+        BoardArena.I18N.glyphs(item.icon) +
         ' ' +
-        (isEn() ? item.en : item.zh) +
+        gameName(item.id) +
         '</button>'
       );
     }).join('');
@@ -2267,11 +2315,11 @@
       '</div>' +
       '<div class="cba-panel" style="background:var(--bg-card);">' +
       '<h3 style="margin-bottom:8px;color:var(--accent-gold-bright);">' +
-      g.icon +
+      BoardArena.I18N.glyphs(g.icon) +
       ' ' +
-      (isEn() ? g.en : g.zh) +
+      (gameName(g.id)) +
       ' — ' +
-      (isEn() ? 'Official Rules, Opening & Endgame Guide' : '標準規則、開局與殘局戰術指南') +
+      T('ui.officialRulesOpeningEndgame') +
       '</h3>' +
       '<p style="margin-bottom:12px;">' +
       escapeHtml(doc.summary) +
@@ -2285,14 +2333,14 @@
       '</ul>' +
       '<div style="padding:10px 12px;border-left:4px solid #fbbf24;background:var(--bg-surface);border-radius:6px;margin-bottom:12px;">' +
       '<b>🎯 ' +
-      (isEn() ? 'Master Strategy:' : '宗師開中殘局心法：') +
+      T('ui.masterStrategy') +
       '</b> ' +
       escapeHtml(doc.strategy) +
       '</div>' +
       '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.startBotMatch(\'' +
       g.id +
       '\', \'normal\', 1)">▶️ ' +
-      (isEn() ? 'Practice ' + g.en + ' vs AI Now' : '立即進入【' + g.zh + '】實戰練習') +
+      T('ui.practiceGame', { game: gameName(g.id) }) +
       '</button>' +
       '</div>';
   }
@@ -2309,31 +2357,29 @@
     wrap.innerHTML =
       '<div class="cba-modal" role="dialog" aria-modal="true">' +
       '<h3 style="color:var(--accent-gold-bright);">🔐 ' +
-      (isEn() ? 'Sign In Required for Two-Player & Rankings' : '登入帳號・開啟雙人對戰與 Glicko-2 天梯') +
+      T('ui.signRequiredTwoPlayer') +
       '</h3>' +
       (triggeredByPvpGate
         ? '<div class="auth-lock-notice">' +
-          (isEn()
-            ? 'Two-Player matches require authentication to prevent rating abuse.'
-            : '依平台規範：單人電腦免登入；雙人對戰與排行榜計分必須先登入帳號！') +
+          T('ui.twoPlayerMatchesRequire') +
           '</div>'
         : '') +
       '<label style="font-size:12.5px;font-weight:700;">' +
-      (isEn() ? 'Display Nickname:' : '棋士顯示暱稱（自動過濾不雅字元與防 XSS）：') +
+      T('ui.displayNickname') +
       '</label>' +
       '<input id="authNicknameInput" class="cba-input" type="text" maxlength="22" value="台灣棋王_Lin" />' +
       '<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">' +
       '<button type="button" class="cba-btn cba-btn-gold" id="btnGoogleSignIn" onclick="BoardArena.App.submitLogin(\'google\')">🌐 ' +
-      (isEn() ? 'Continue with Google (OAuth 2.0)' : '使用 Google 帳號一鍵登入（首發支援）') +
+      T('ui.continueGoogleOauth2') +
       '</button>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-      '<button type="button" class="cba-btn" onclick="BoardArena.App.submitLogin(\'discord\')">💬 Discord 登入</button>' +
-      '<button type="button" class="cba-btn" onclick="BoardArena.App.submitLogin(\'line\')">💚 LINE 登入</button>' +
+      '<button type="button" class="cba-btn" onclick="BoardArena.App.submitLogin(\'discord\')">💬 ' + T('ui.loginWithDiscord') + '</button>' +
+      '<button type="button" class="cba-btn" onclick="BoardArena.App.submitLogin(\'line\')">💚 ' + T('ui.loginWithLine') + '</button>' +
       '</div>' +
       '</div>' +
       '<div style="display:flex;justify-content:flex-end;margin-top:4px;">' +
       '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">' +
-      (isEn() ? 'Cancel' : '稍後再說') +
+      T('ui.cancel') +
       '</button>' +
       '</div>' +
       '</div>';
@@ -2368,18 +2414,16 @@
     wrap.innerHTML =
       '<div class="cba-modal">' +
       '<h3>✨ ' +
-      (isEn() ? 'Choose Promotion / Move Option' : '請選擇升變／走法選項') +
+      T('ui.choosePromotionMoveOption') +
       '</h3>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
       moves
         .map(function (mv, idx) {
-          const lbl = mv.choiceLabel
-            ? isEn()
-              ? mv.choiceLabel.en
-              : mv.choiceLabel.zh
+          const lbl = mv.choiceLabelKey
+            ? T(mv.choiceLabelKey)
             : mv.promote
             ? String(mv.promote)
-            : mv.notation;
+            : BoardArena.I18N.notation(mv.notation);
           return (
             '<button type="button" class="cba-btn cba-btn-gold" data-choice-idx="' +
             idx +
@@ -2411,27 +2455,25 @@
     wrap.innerHTML =
       '<div class="cba-modal">' +
       '<h3>⚡ ' +
-      (isEn() ? 'Quick Matchmaking Queue' : '雙人快速配對佇列') +
+      T('ui.quickMatchmakingQueue') +
       '</h3>' +
       '<p id="queueWaitStatus" class="cba-tabular">' +
-      (isEn() ? 'Searching opponent (widening Glicko-2 range)... 0s' : '正在搜尋相近積分對手... 已等待 0 秒') +
+      T('ui.searchingOpponentWideningGlicko') +
       '</p>' +
       '<div id="queueBotPromptArea" style="display:none;flex-direction:column;gap:8px;">' +
       '<div class="auth-lock-notice">' +
-      (isEn()
-        ? '15s elapsed — Would you like to play a Computer Opponent now or keep waiting?'
-        : '已等待滿 15 秒尚未配到真人對手，是否立即轉接同級電腦對手，或繼續等待？') +
+      T('ui.15sElapsedWouldLike') +
       '</div>' +
       '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.closeDynamicModal();BoardArena.App.startBotFromLobby()">🤖 ' +
-      (isEn() ? 'Switch to Computer Opponent' : '轉接電腦對手立即開局') +
+      T('ui.switchComputerOpponent') +
       '</button>' +
       '</div>' +
       '<div style="display:flex;justify-content:space-between;gap:8px;">' +
       '<button type="button" class="cba-btn cba-btn-emerald" onclick="BoardArena.App.closeDynamicModal();BoardArena.App.launchAuthenticatedPvpMatch(\'pvp_online\', \'陳冠宇九段 (TW)\', 1765, null)">⚡ ' +
-      (isEn() ? 'Simulate Instant Challenger Match' : '立即配對線上對手開戰') +
+      T('ui.simulateInstantChallengerMatch') +
       '</button>' +
       '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">' +
-      (isEn() ? 'Leave Queue' : '離開配對') +
+      T('ui.leaveQueue') +
       '</button>' +
       '</div></div>';
     document.body.appendChild(wrap);
@@ -2440,9 +2482,7 @@
       sec++;
       const st = $('queueWaitStatus');
       if (st) {
-        st.textContent = isEn()
-          ? 'Searching opponent... ' + sec + 's'
-          : '正在依時限與積分範圍配對中... 已等待 ' + sec + ' 秒';
+        st.textContent = T('ui.queueWaiting', { sec: sec });
       }
       if (sec >= 15) {
         const promptEl = $('queueBotPromptArea');
@@ -2459,19 +2499,19 @@
     wrap.innerHTML =
       '<div class="cba-modal">' +
       '<h3>🚪 ' +
-      (isEn() ? 'Room Created: #' + room.id : '已開立新棋桌：#' + room.id) +
+      T('ui.roomCreated', { id: room.id }) +
       '</h3>' +
       '<p style="font-size:13px;">' +
-      (isEn() ? 'Share this room link with your friend:' : '複製以下邀請連結傳給好友即可加入對戰：') +
+      T('ui.shareRoomLinkFriend') +
       '</p>' +
       '<input class="cba-input cba-tabular" readonly value="' +
       escapeHtml(room.inviteUrl || global.location.href) +
       '" onclick="this.select()" />' +
       '<div style="display:flex;justify-content:flex-end;gap:8px;">' +
       '<button type="button" class="cba-btn cba-btn-emerald" onclick="BoardArena.App.closeDynamicModal();BoardArena.App.launchAuthenticatedPvpMatch(\'pvp_online\', \'受邀好友棋士\', 1540, null)">▶️ ' +
-      (isEn() ? 'Enter Room Board' : '進入棋桌舞台') +
+      T('ui.enterRoomBoard') +
       '</button>' +
-      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">關閉</button>' +
+      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">' + T('ui.close') + '</button>' +
       '</div></div>';
     document.body.appendChild(wrap);
   }
@@ -2484,16 +2524,16 @@
     wrap.innerHTML =
       '<div class="cba-modal">' +
       '<h3>👥 ' +
-      (isEn() ? 'Authenticated 2-Player Match' : '雙人計分對戰設定') +
+      T('ui.authenticated2PlayerMatch') +
       '</h3>' +
       '<label style="font-size:12.5px;">' +
-      (isEn() ? 'Player 2 Challenger Nickname:' : '二號對手暱稱：') +
+      T('ui.player2ChallengerNickname') +
       '</label>' +
       '<input id="p2NameInput" class="cba-input" value="王楚河快刀 (P2)" maxlength="22" />' +
       '<div style="display:flex;justify-content:flex-end;gap:8px;">' +
-      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">取消</button>' +
+      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">' + T('ui.cancel') + '</button>' +
       '<button type="button" class="cba-btn cba-btn-emerald" id="btnConfirmStartPvp" onclick="BoardArena.App.confirmSecondPlayerStart()">▶️ ' +
-      (isEn() ? 'Start Rated 2P Match' : '開始雙人計分對局') +
+      T('ui.startRated2pMatch') +
       '</button>' +
       '</div></div>';
     document.body.appendChild(wrap);
@@ -2501,41 +2541,20 @@
 
   function confirmSecondPlayerStart() {
     const inp = $('p2NameInput');
-    const name = inp ? inp.value : 'Player 2';
+    const name = inp ? inp.value : T('ui.player2');
     closeDynamicModal();
     launchAuthenticatedPvpMatch('pvp_local', name, 1560, null);
   }
 
-  /** 結束原因代碼 → 顯示文字 */
-  const END_REASON_LABELS = {
-    checkmate: { zh: '將死', en: 'Checkmate' },
-    stalemate: { zh: '無子可動（困斃／逼和）', en: 'Stalemate' },
-    timeout: { zh: '超時', en: 'Time out' },
-    resign: { zh: '認輸', en: 'Resignation' },
-    draw_agreed: { zh: '同意和棋', en: 'Draw agreed' },
-    threefold_repetition: { zh: '三次重複局面', en: 'Threefold repetition' },
-    repetition_draw: { zh: '重複局面判和', en: 'Repetition draw' },
-    perpetual_check: { zh: '長將判負', en: 'Perpetual check (loss)' },
-    sennichite: { zh: '千日手', en: 'Sennichite (repetition)' },
-    perpetual_check_sennichite: { zh: '連續王手千日手（王手方判負）', en: 'Perpetual-check sennichite (loss)' },
-    insufficient_material: { zh: '子力不足', en: 'Insufficient material' },
-    fifty_move_draw: { zh: '多步未吃子判和', en: 'Move-limit draw' },
-    fifty_move_rule: { zh: '50 步規則', en: '50-move rule' },
-    draw_120_ply: { zh: '60 回合未吃子判和', en: '60-move no-capture draw' },
-    elimination_or_blockade: { zh: '對方無子可走', en: 'Opponent has no moves' },
-    five_in_row: { zh: '五子連線', en: 'Five in a row' },
-    full_board: { zh: '棋盤下滿', en: 'Board full' },
-    disc_count: { zh: '終局數子', en: 'Disc count' },
-    area_score: { zh: '數子計分', en: 'Area scoring' },
-    bear_off_complete: { zh: '全部收子', en: 'All checkers borne off' },
-    gammon: { zh: '雙勝（Gammon）', en: 'Gammon' },
-    backgammon: { zh: '三勝（Backgammon）', en: 'Backgammon' }
-  };
-
+  /**
+   * 將終局原因代碼轉成顯示文字。
+   * @param {string} code 終局原因代碼
+   * @returns {string} 顯示文字；沒有對應翻譯時回傳代碼本身
+   */
   function endReasonLabel(code) {
-    const item = END_REASON_LABELS[code];
-    if (!item) return code || '';
-    return isEn() ? item.en : item.zh;
+    const key = 'end.' + code;
+    const label = T(key);
+    return label === key ? code || '' : label;
   }
 
   function openMatchResultModal(winner, endReason, ratingDeltaInfo) {
@@ -2543,17 +2562,15 @@
     const m = stateStore.match;
     const title =
       winner === 0
-        ? isEn()
-          ? '🤝 Match Drawn!'
-          : '🤝 雙方握手言和！'
-        : (winner === 1 ? m.players[1].name : m.players[2].name) + (isEn() ? ' Wins!' : ' 獲勝！');
+        ? T('ui.matchDrawn')
+        : T('ui.playerWins', { name: winner === 1 ? m.players[1].name : m.players[2].name });
 
     let ratingHtml = '';
     if (ratingDeltaInfo && !ratingDeltaInfo.abortedUnrated && typeof ratingDeltaInfo.ratingAfter === 'number') {
       const sign = ratingDeltaInfo.delta >= 0 ? '+' : '';
       ratingHtml =
         '<div class="auth-lock-notice" style="border-color:#22c55e;color:#86efac;">' +
-        '<span>🏆 Glicko-2 積分更新：<b>' +
+        '<span>🏆 ' + T('ui.ratingUpdate') + '<b>' +
         ratingDeltaInfo.ratingBefore +
         ' → ' +
         ratingDeltaInfo.ratingAfter +
@@ -2565,19 +2582,15 @@
         '</span></div>';
     } else if (ratingDeltaInfo && ratingDeltaInfo.abortedUnrated) {
       ratingHtml =
-        '<div style="font-size:12.5px;color:var(--text-muted);">雙方未下滿第一步前結束，依規取消且不計分。</div>';
+        '<div style="font-size:12.5px;color:var(--text-muted);">' + T('ui.matchAborted') + '</div>';
     }
 
     let goScoreHtml = '';
     if (m.gameId === 'go' && m.gameState.scoreSummary) {
       const sc = m.gameState.scoreSummary;
       goScoreHtml =
-        '<div class="cba-tabular" style="font-size:13px;">⚫ 黑方總子地：' +
-        sc.blackArea +
-        ' ｜ ⚪ 白方（含貼目 ' +
-        sc.komi +
-        '）：' +
-        sc.whiteArea +
+        '<div class="cba-tabular" style="font-size:13px;">' +
+        T('ui.goScoreLine', { black: sc.blackArea, komi: sc.komi, white: sc.whiteArea }) +
         '</div>';
     }
 
@@ -2590,7 +2603,7 @@
       escapeHtml(title) +
       '</h3>' +
       '<div style="font-size:13px;color:var(--text-secondary);">' +
-      (isEn() ? 'Result: ' : '結算原因：') +
+      T('ui.result') +
       escapeHtml(endReasonLabel(endReason)) +
       '</div>' +
       goScoreHtml +
@@ -2598,21 +2611,21 @@
       '<div id="adSlotResultModal"></div>' +
       '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px;">' +
       '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.openMentorReview()">🎓 ' +
-      (isEn() ? 'AI Mentor Review' : '導師復盤分析') +
+      T('ui.aiMentorReview') +
       '</button>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
       (m.mode === 'bot'
         ? '<button type="button" class="cba-btn cba-btn-emerald" onclick="BoardArena.App.undoBotMove()">↩️ ' +
-          (isEn() ? 'Undo Last Move' : '悔棋一步') +
+          T('ui.undoLastMove') +
           '</button>'
-        : '<button type="button" class="cba-btn" onclick="BoardArena.App.closeDynamicModal();BoardArena.App.switchView(\'leaderboard\')">🏆 查看排行榜</button>') +
-      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">檢視棋盤</button>' +
+        : '<button type="button" class="cba-btn" onclick="BoardArena.App.closeDynamicModal();BoardArena.App.switchView(\'leaderboard\')">🏆 ' + T('ui.viewLeaderboard') + '</button>') +
+      '<button type="button" class="cba-btn cba-btn-ghost" onclick="BoardArena.App.closeDynamicModal()">' + T('ui.viewBoard') + '</button>' +
       '<button type="button" class="cba-btn cba-btn-gold" onclick="BoardArena.App.requestRematch()">' +
-      BoardArena.I18N.t('rematch') +
+      T('ui.rematch') +
       '</button>' +
       '</div></div></div>';
     document.body.appendChild(wrap);
-    BoardArena.AdsManager.renderDisplaySlot($('adSlotResultModal'), 'result', lang());
+    BoardArena.AdsManager.renderDisplaySlot($('adSlotResultModal'), 'result');
   }
 
   async function openProfileModal() {
@@ -2630,12 +2643,12 @@
       ' (' +
       escapeHtml(user.provider.toUpperCase()) +
       ')</h3>' +
-      '<div style="font-size:13px;color:var(--text-secondary);">最近對局紀錄：共 ' +
-      games.length +
-      ' 盤</div>' +
+      '<div style="font-size:13px;color:var(--text-secondary);">' +
+      T('ui.recentGames', { count: games.length }) +
+      '</div>' +
       '<div style="max-height:160px;overflow-y:auto;font-size:12px;" class="cba-tabular">' +
       (games.length === 0
-        ? '<div style="color:var(--text-muted);">尚無計分對局紀錄</div>'
+        ? '<div style="color:var(--text-muted);">' + T('ui.noRatedGames') + '</div>'
         : games
             .slice(0, 6)
             .map(function (g) {
@@ -2655,9 +2668,9 @@
       '</div>' +
       '<div style="display:flex;justify-content:space-between;margin-top:8px;">' +
       '<button type="button" class="cba-btn cba-btn-crimson" onclick="BoardArena.App.confirmDeleteAccount()">' +
-      BoardArena.I18N.t('deleteAccount') +
+      T('ui.deleteAccount') +
       '</button>' +
-      '<button type="button" class="cba-btn" onclick="BoardArena.App.closeDynamicModal()">關閉</button>' +
+      '<button type="button" class="cba-btn" onclick="BoardArena.App.closeDynamicModal()">' + T('ui.close') + '</button>' +
       '</div></div>';
     document.body.appendChild(wrap);
   }
@@ -2673,7 +2686,7 @@
     const m = stateStore.match;
     if (!m) return;
     await BoardArena.Client.submitReport(m.players[2].name, m.id, 'suspected_engine_or_stall');
-    addChatMessage('System', isEn() ? 'Report submitted for human review.' : '已送出檢舉，系統將列入人工棋譜審核佇列。');
+    addChatMessage(T('ui.chatSystem'), T('ui.reportSubmittedHumanReview'));
   }
 
   function initGdprConsentBanner() {
@@ -2685,11 +2698,11 @@
     div.className = 'cmp-banner';
     div.id = 'cbaCmpBanner';
     div.innerHTML =
-      '<div style="font-weight:800;margin-bottom:4px;">🍪 Google Certified CMP · 隱私與廣告同意聲明</div>' +
-      '<div style="color:#cbd5e1;margin-bottom:8px;">本網站使用必要工作階段 Cookie 與非干擾式 AdSense / H5 遊戲廣告版位（EEA/UK/TW 合規）。</div>' +
+      '<div style="font-weight:800;margin-bottom:4px;">🍪 ' + T('ui.cmpTitle') + '</div>' +
+      '<div style="color:#cbd5e1;margin-bottom:8px;">' + T('ui.cmpBody') + '</div>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-      '<button type="button" class="cba-btn" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.acceptCmp(false)">僅必要項目</button>' +
-      '<button type="button" class="cba-btn cba-btn-gold" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.acceptCmp(true)">同意並關閉</button>' +
+      '<button type="button" class="cba-btn" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.acceptCmp(false)">' + T('ui.cmpNecessary') + '</button>' +
+      '<button type="button" class="cba-btn cba-btn-gold" style="padding:4px 10px;font-size:12px;" onclick="BoardArena.App.acceptCmp(true)">' + T('ui.cmpAccept') + '</button>' +
       '</div>';
     document.body.appendChild(div);
   }
@@ -2731,7 +2744,7 @@
   BoardArena.App = {
     init: initApp,
     switchView: switchView,
-    toggleLanguage: toggleLanguage,
+    setLanguage: setLanguage,
     toggleTheme: toggleTheme,
     toggleSound: toggleSound,
     selectLobbyGame: selectLobbyGame,

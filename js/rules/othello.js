@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.2.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
 /**
  * Classic Board Arena — Othello (Reversi) 8x8 Rule Engine
  * Tournament rules: 8-direction outflank flips, mandatory auto-pass when stuck,
@@ -7,6 +13,7 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+  const msg = BoardArena.msg;
 
   const ROWS = 8;
   const COLS = 8;
@@ -439,10 +446,10 @@
   function canSelectSource(state, source, player) {
     const p = player || state.currentPlayer;
     if (!state || state.status === 'ended') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '對局已結束。', reasonEn: 'Game has ended.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.gameEnded') };
     }
     if (!source || typeof source.r !== 'number' || typeof source.c !== 'number') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '請選擇空位落子。', reasonEn: 'Select an empty square.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.othello.selectEmpty') };
     }
     const flips = collectFlips(state.board, source.r, source.c, p);
     if (flips && flips.length > 0) {
@@ -454,15 +461,14 @@
         captures: flips,
         notation: COL_LABELS[source.c] + (source.r + 1)
       };
-      return { ok: true, selectable: true, hasMoves: true, moves: [move], reasonZh: '', reasonEn: '' };
+      return { ok: true, selectable: true, hasMoves: true, moves: [move] };
     }
     return {
       ok: false,
       selectable: false,
       hasMoves: false,
       moves: [],
-      reasonZh: '此位置無法夾住任何對手棋子。',
-      reasonEn: 'Must outflank at least one opponent disc.'
+      reason: msg('rule.othello.noOutflank')
     };
   }
 
@@ -471,10 +477,7 @@
     selectionMode: 'drop',
     rows: ROWS,
     cols: COLS,
-    sideLabels: {
-      1: { zh: '黑方', en: 'Black' },
-      2: { zh: '白方', en: 'White' }
-    },
+    sideLabels: { 1: 'side.black', 2: 'side.white' },
     createInitialState: createInitialState,
     cloneState: cloneState,
     getLegalMoves: getLegalMoves,

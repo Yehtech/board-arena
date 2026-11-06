@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.3.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
 /**
  * Classic Board Arena — Chess (西洋棋 8×8 FIDE) Complete Rule Engine
  * Implements Castling (O-O / O-O-O), En Passant, 4-Piece Promotion (Q/R/B/N),
@@ -8,6 +14,7 @@
   'use strict';
 
   const BoardArena = global.BoardArena;
+  const msg = BoardArena.msg;
   if (!BoardArena || typeof BoardArena.registerRule !== 'function') {
     throw new Error('BoardArena.registerRule is required before loading chess.js');
   }
@@ -17,24 +24,24 @@
   const FILES = 'abcdefgh';
 
   const SIDE_LABELS = {
-    1: { zh: '白方', en: 'White' },
-    2: { zh: '黑方', en: 'Black' }
+    1: 'side.white',
+    2: 'side.black'
   };
 
   const PIECE_LABELS = {
-    K: { zh: '國王', en: 'King', w: '♔', b: '♚' },
-    Q: { zh: '皇后', en: 'Queen', w: '♕', b: '♛' },
-    R: { zh: '城堡', en: 'Rook', w: '♖', b: '♜' },
-    B: { zh: '主教', en: 'Bishop', w: '♗', b: '♝' },
-    N: { zh: '騎士', en: 'Knight', w: '♘', b: '♞' },
-    P: { zh: '士兵', en: 'Pawn', w: '♙', b: '♟' }
+    K: { w: '♔', b: '♚' },
+    Q: { w: '♕', b: '♛' },
+    R: { w: '♖', b: '♜' },
+    B: { w: '♗', b: '♝' },
+    N: { w: '♘', b: '♞' },
+    P: { w: '♙', b: '♟' }
   };
 
   const PROMO_OPTIONS = [
-    { type: 'Q', choiceLabel: { zh: '升變皇后', en: 'Queen' } },
-    { type: 'R', choiceLabel: { zh: '升變城堡', en: 'Rook' } },
-    { type: 'B', choiceLabel: { zh: '升變主教', en: 'Bishop' } },
-    { type: 'N', choiceLabel: { zh: '升變騎士', en: 'Knight' } }
+    { type: 'Q', choiceLabelKey: 'choice.queen' },
+    { type: 'R', choiceLabelKey: 'choice.rook' },
+    { type: 'B', choiceLabelKey: 'choice.bishop' },
+    { type: 'N', choiceLabelKey: 'choice.knight' }
   ];
 
   const MATERIAL = {
@@ -462,7 +469,7 @@
                 to: { r: r1, c: c },
                 piece: 'P',
                 promote: pr.type,
-                choiceLabel: pr.choiceLabel,
+                choiceLabelKey: pr.choiceLabelKey,
                 isCapture: false,
                 captures: [],
                 notation: buildNotation('P', r, c, r1, c, false, pr.type, null, false)
@@ -517,7 +524,7 @@
                   to: { r: r1, c: nc },
                   piece: 'P',
                   promote: pr.type,
-                  choiceLabel: pr.choiceLabel,
+                  choiceLabelKey: pr.choiceLabelKey,
                   isCapture: true,
                   captures: [{ r: r1, c: nc }],
                   notation: buildNotation('P', r, c, r1, nc, true, pr.type, null, false)
@@ -752,13 +759,16 @@
     return moves;
   }
 
+  function pieceMsg(cell) {
+    return msg('piece.chess.' + cell.type);
+  }
+
   function canSelectSource(state, source, player) {
     if (!state || state.status !== 'playing') {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '對局已結束',
-        reasonEn: 'Game has already ended'
+        reason: msg('rule.gameEnded')
       };
     }
     const p = player || state.currentPlayer;
@@ -766,16 +776,14 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '目前輪到' + SIDE_LABELS[state.currentPlayer].zh + '行動',
-        reasonEn: 'It is currently ' + SIDE_LABELS[state.currentPlayer].en + "'s turn"
+        reason: msg('rule.notYourTurn', { side: msg(SIDE_LABELS[state.currentPlayer]) })
       };
     }
     if (!source || typeof source.r !== 'number' || typeof source.c !== 'number' || !inBounds(source.r, source.c)) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '請點擊棋盤上的己方棋子',
-        reasonEn: 'Click one of your own pieces on the board'
+        reason: msg('rule.chess.clickOwnPiece')
       };
     }
     const cell = state.board[source.r][source.c];
@@ -783,16 +791,14 @@
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '此方格為空位，請點擊' + SIDE_LABELS[p].zh + '棋子',
-        reasonEn: 'Empty square — select a ' + SIDE_LABELS[p].en + ' piece'
+        reason: msg('rule.chess.empty', { side: msg(SIDE_LABELS[p]) })
       };
     }
     if (cell.owner !== p) {
       return {
         selectable: false,
         hasMoves: false,
-        reasonZh: '這是對手的' + PIECE_LABELS[cell.type].zh + '，請點選' + SIDE_LABELS[p].zh + '棋子',
-        reasonEn: 'Opponent piece — select your own ' + SIDE_LABELS[p].en + ' piece'
+        reason: msg('rule.chess.opponentPiece', { piece: pieceMsg(cell), side: msg(SIDE_LABELS[p]) })
       };
     }
 
@@ -802,12 +808,7 @@
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: inChk
-          ? '己方國王正受將軍，此' + PIECE_LABELS[cell.type].zh + '無法解將'
-          : '此' + PIECE_LABELS[cell.type].zh + '受阻擋或遭絕對牽制（移動將使國王暴露於將軍之下）',
-        reasonEn: inChk
-          ? 'Your King is in check and this ' + PIECE_LABELS[cell.type].en + ' cannot resolve check'
-          : 'This ' + PIECE_LABELS[cell.type].en + ' is blocked or pinned to your King'
+        reason: msg(inChk ? 'rule.chess.cannotResolveCheck' : 'rule.chess.pinned', { piece: pieceMsg(cell) })
       };
     }
 
@@ -826,24 +827,12 @@
     return {
       selectable: true,
       hasMoves: true,
-      reasonZh:
-        '已選取' +
-        PIECE_LABELS[cell.type].zh +
-        '（' +
-        sqName(source.r, source.c) +
-        '）：可走 ' +
-        destCount +
-        ' 格' +
-        (capSquares > 0 ? '（含 ' + capSquares + ' 個可吃目標）' : ''),
-      reasonEn:
-        'Selected ' +
-        PIECE_LABELS[cell.type].en +
-        ' (' +
-        sqName(source.r, source.c) +
-        '): ' +
-        destCount +
-        ' legal square(s)' +
-        (capSquares > 0 ? ' (' + capSquares + ' capture(s))' : '')
+      reason: msg('rule.chess.selected', {
+        piece: pieceMsg(cell),
+        square: sqName(source.r, source.c),
+        count: destCount,
+        captures: capSquares > 0 ? msg('rule.capturesSuffix', { count: capSquares }) : ''
+      })
     };
   }
 

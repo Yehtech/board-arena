@@ -51,6 +51,7 @@
   <script src="../js/rules/rules-core.js"></script>
   <script src="../js/glicko2.js"></script>
   <script src="../js/i18n.js"></script>
+  <script src="../js/i18n/zh-TW.js"></script>
   <script src="../js/sound-fx.js"></script>
   <script src="../js/ads-manager.js"></script>
   <script src="../js/rules/othello.js"></script>
@@ -348,7 +349,7 @@
             mentorRep.winRateTimeline.length === 3 &&
             mentorRep.steps.length === 2 &&
             typeof mentorRep.stats[1].accuracy === 'number' &&
-            Boolean(mentorRep.steps[0].commentZh) &&
+            mentorRep.steps[0].comment.length > 0 &&
             Boolean(mentorRep.steps[0].bestMove),
           'steps=' +
             mentorRep.steps.length +

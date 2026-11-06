@@ -1,4 +1,10 @@
 // ============================================
+// Date: 2026-11-06
+// Version: v1.3.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
+// ============================================
 // Date: 2026-11-05
 // Version: v1.1.0
 // Changes: FMJD majority-capture rule; jumped pieces stay on board until the sequence ends (no double jumping)
@@ -21,13 +27,14 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+  const msg = BoardArena.msg;
 
   const ROWS = 10;
   const COLS = 10;
 
   const SIDE_LABELS = {
-    1: { zh: '白方', en: 'White' },
-    2: { zh: '黑方', en: 'Black' }
+    1: 'side.white',
+    2: 'side.black'
   };
 
   const DIAGS = [
@@ -395,23 +402,12 @@
       return {
         selectable: true,
         hasMoves: true,
-        reasonZh:
-          '已選取' +
-          (cell.king ? '飛行王棋' : '跳棋') +
-          '（#' +
-          sqNum(source.r, source.c) +
-          '）：可走 ' +
-          moves.length +
-          ' 格' +
-          (capCount > 0 ? '（強制跳吃 ' + capCount + ' 處）' : ''),
-        reasonEn:
-          'Selected ' +
-          (cell.king ? 'Flying King' : 'Checker') +
-          ' (#' +
-          sqNum(source.r, source.c) +
-          '): ' +
-          moves.length +
-          ' legal destination(s)'
+        reason: msg('rule.draughts.selected', {
+          piece: msg(cell.king ? 'piece.draughts.king' : 'piece.draughts.man'),
+          square: sqNum(source.r, source.c),
+          count: moves.length,
+          captures: capCount > 0 ? msg('rule.draughts.capturesSuffix', { count: capCount }) : ''
+        })
       };
     }
 
@@ -420,8 +416,7 @@
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: '連跳進行中：必須繼續操作正在連跳的棋子（#' + sqNum(state.mustContinueFrom.r, state.mustContinueFrom.c) + '）！',
-        reasonEn: 'Multi-jump in progress: you must continue jumping with piece #' + sqNum(state.mustContinueFrom.r, state.mustContinueFrom.c) + '!'
+        reason: msg('rule.draughts.multiJump', { square: sqNum(state.mustContinueFrom.r, state.mustContinueFrom.c) })
       };
     }
 
@@ -430,16 +425,14 @@
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: '國際跳棋「有吃必吃」規則：場上有其他己方棋子可跳吃敵子，必須優先執行跳吃！',
-        reasonEn: 'Mandatory Capture Rule: another friendly piece has a capture and must jump!'
+        reason: msg('rule.draughts.mandatoryCapture')
       };
     }
 
     return {
       selectable: true,
       hasMoves: false,
-      reasonZh: '此棋子前方斜格已被阻擋，目前無合法走位。',
-      reasonEn: 'This piece is blocked along its diagonals.'
+      reason: msg('rule.draughts.blocked')
     };
   }
 

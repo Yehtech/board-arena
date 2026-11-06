@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.2.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
 /**
  * Classic Board Arena — Go / Weiqi (9x9, 13x13, 19x19) Rule Engine
  * Full rules: BFS group & liberty analysis, captures, suicide prohibition,
@@ -8,6 +14,7 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+  const msg = BoardArena.msg;
 
   // Standard Go column coordinates (omits 'I')
   const GO_COLS = 'ABCDEFGHJKLMNOPQRST';
@@ -883,10 +890,10 @@
   function canSelectSource(state, source, player) {
     const p = player || state.currentPlayer;
     if (!state || state.status === 'ended') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '對局已結束。', reasonEn: 'Game has ended.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.gameEnded') };
     }
     if (!source || typeof source.r !== 'number' || typeof source.c !== 'number') {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '請點擊空白交叉點。', reasonEn: 'Click an empty intersection.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.clickEmptyPoint') };
     }
     if (state.status === 'scoring') {
       if (state.board[source.r] && state.board[source.r][source.c] !== 0) {
@@ -898,12 +905,12 @@
           isCapture: false,
           notation: 'Dead ' + GO_COLS[source.c] + (state.size - source.r)
         };
-        return { ok: true, selectable: true, hasMoves: true, moves: [m], reasonZh: '', reasonEn: '' };
+        return { ok: true, selectable: true, hasMoves: true, moves: [m] };
       }
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '點目階段請點擊死子或確認結算。', reasonEn: 'Click stones to toggle dead status or confirm score.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.go.scoringClick') };
     }
     if (state.board[source.r][source.c] !== 0) {
-      return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '此交叉點已有棋子。', reasonEn: 'Intersection is already occupied.' };
+      return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.occupied') };
     }
     const scanned = scanBoardForPlayer(state, p);
     for (let i = 0; i < scanned.forbiddenPoints.length; i++) {
@@ -915,8 +922,7 @@
             selectable: false,
             hasMoves: false,
             moves: [],
-            reasonZh: '禁著點：全局同形打劫（Ko），須先於他處尋劫！',
-            reasonEn: 'Forbidden point: Positional Ko forbids immediate repetition!'
+            reason: msg('rule.go.ko')
           };
         }
         return {
@@ -924,18 +930,17 @@
           selectable: false,
           hasMoves: false,
           moves: [],
-          reasonZh: '禁著點：此處氣數為零且無法提子（禁自殺）！',
-          reasonEn: 'Forbidden point: Suicide is not allowed!'
+          reason: msg('rule.go.suicide')
         };
       }
     }
     for (let i = 0; i < scanned.moves.length; i++) {
       const mv = scanned.moves[i];
       if (mv.to && mv.to.r === source.r && mv.to.c === source.c) {
-        return { ok: true, selectable: true, hasMoves: true, moves: [mv], reasonZh: '', reasonEn: '' };
+        return { ok: true, selectable: true, hasMoves: true, moves: [mv] };
       }
     }
-    return { ok: false, selectable: false, hasMoves: false, moves: [], reasonZh: '此處無法落子。', reasonEn: 'Illegal intersection.' };
+    return { ok: false, selectable: false, hasMoves: false, moves: [], reason: msg('rule.go.illegal') };
   }
 
   BoardArena.registerRule('go', {
@@ -944,10 +949,7 @@
     rows: 19,
     cols: 19,
     supportedSizes: [9, 13, 19],
-    sideLabels: {
-      1: { zh: '黑方', en: 'Black' },
-      2: { zh: '白方', en: 'White' }
-    },
+    sideLabels: { 1: 'side.black', 2: 'side.white' },
     getStarPoints: getStarPoints,
     computeAreaScore: computeAreaScore,
     createInitialState: createInitialState,

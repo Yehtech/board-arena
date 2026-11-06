@@ -13,7 +13,8 @@
 - 單人悔棋、大師提示、AI 導師復盤
 - 棋譜回放與分享連結
 - 規則教學與每日殘局
-- 繁體中文／English、深色／淺色主題、手機可玩
+- 九種語言：繁體中文（預設）、简体中文、English、日本語、한국어、Tiếng Việt、Русский、Français、Türkçe
+- 深色／淺色主題、手機可玩
 
 ## 本機執行
 
@@ -61,6 +62,19 @@ node tests/strength/elo-ladder.js --only=go --games=40  # 只量圍棋
 - 直接開 `index.html` 不會啟用引擎；要在本機測試引擎，請用本機 HTTP 伺服器（localhost）開啟。
 
 **原生棋力引擎（選用，僅限本機）**：在本機執行 `start_multiplayer_server.bat` 啟動伺服器後，電腦對手會改用 `engines/` 資料夾內的原生引擎（例如 Fairy-Stockfish、Edax）。引擎執行檔不放在 repo 內，需自行下載。
+
+## 多語系
+
+字典在 `js/i18n/<語言>.js`，每種語言的 key 必須完全相同；新增或修改文字時，9 個檔案都要更新。
+規則引擎與 AI 只回傳訊息物件（`BoardArena.msg(key, params)`），不含語言文字。
+可用網址指定語言：`?lang=ja`。
+
+```
+node tests/node/i18n.test.js                 # key、佔位符與寫死文字檢查
+npm i --no-save playwright-core && node tests/e2e/i18n.e2e.js   # 9 語言瀏覽器測試（使用本機 Chrome）
+```
+
+翻譯未經母語人士校對，歡迎到 GitHub Issues 回報用詞問題。
 
 ## 授權
 

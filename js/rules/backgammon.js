@@ -1,3 +1,9 @@
+// ============================================
+// Date: 2026-11-06
+// Version: v1.1.0
+// Changes: Selection reasons returned as language-neutral messages
+// 修改: 選子提示改回傳語言中立的訊息
+// ============================================
 /**
  * Classic Board Arena — Backgammon (雙陸棋 24-Point Tournament Rule Engine)
  * Features:
@@ -16,10 +22,11 @@
   'use strict';
 
   const BoardArena = (global.BoardArena = global.BoardArena || {});
+  const msg = BoardArena.msg;
 
   const SIDE_LABELS = {
-    1: { zh: '白方', en: 'White' },
-    2: { zh: '黑方', en: 'Black' }
+    1: 'side.white',
+    2: 'side.black'
   };
 
   function opponentOf(p) {
@@ -276,30 +283,15 @@
       const capCount = moves.filter(function (m) {
         return m.isCapture;
       }).length;
-      const srcLabelZh =
-        source.zone === 'bar' ? '中欄 (Bar)' : '第 ' + (source.index + 1) + ' 點';
-      const srcLabelEn =
-        source.zone === 'bar' ? 'Bar' : 'Point ' + (source.index + 1);
       return {
         selectable: true,
         hasMoves: true,
-        reasonZh:
-          '已選取' +
-          srcLabelZh +
-          '棋子（剩餘骰點 ' +
-          (state.diceLeft || []).join(', ') +
-          '）：可走 ' +
-          moves.length +
-          ' 處' +
-          (capCount > 0 ? '（含擊回中欄 ' + capCount + ' 處）' : ''),
-        reasonEn:
-          'Selected checker at ' +
-          srcLabelEn +
-          ' (dice left: ' +
-          (state.diceLeft || []).join(', ') +
-          '): ' +
-          moves.length +
-          ' legal destination(s)'
+        reason: msg('rule.backgammon.selected', {
+          source: source.zone === 'bar' ? msg('rule.backgammon.bar') : msg('rule.backgammon.point', { point: source.index + 1 }),
+          dice: (state.diceLeft || []).join(', '),
+          count: moves.length,
+          captures: capCount > 0 ? msg('rule.backgammon.capturesSuffix', { count: capCount }) : ''
+        })
       };
     }
 
@@ -307,16 +299,14 @@
       return {
         selectable: true,
         hasMoves: false,
-        reasonZh: '雙陸棋規則：您在中欄（Bar）上有被擊中的棋子，必須先點擊中央中欄棋子重新入場！',
-        reasonEn: 'Bar Re-entry Rule: you have checker(s) on the Bar and must re-enter them first!'
+        reason: msg('rule.backgammon.mustEnterBar')
       };
     }
 
     return {
       selectable: true,
       hasMoves: false,
-      reasonZh: '依目前骰點（' + (state.diceLeft || []).join(', ') + '），此點棋子對應的目標點已被對手封鎖（2 子以上）。',
-      reasonEn: 'Target points for dice (' + (state.diceLeft || []).join(', ') + ') from this point are blocked.'
+      reason: msg('rule.backgammon.blocked', { dice: (state.diceLeft || []).join(', ') })
     };
   }
 
