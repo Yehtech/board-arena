@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.2.0
+// Changes: Go uses MCTS (go-mcts.js) with pass decision; old alpha-beta kept behind AI.goEngine='alphabeta'
+// 修改: 圍棋改用蒙地卡羅樹搜尋並會適時虛手；舊演算法保留（AI.goEngine='alphabeta'）供比較
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Raise Hard/Master depth caps so iterative deepening uses the full time budget (master ~950ms)
 // 修改: 放寬困難／大師的搜尋深度上限，讓迭代加深用滿時間預算（大師約 950 毫秒），棋力大幅提升
@@ -115,8 +121,9 @@
       noiseProb: 0.0,
       useOpeningBook: true,
       // 深度上限放寬，實際由 timeBudgetMs 以迭代加深控制（圍棋為固定深度搜尋，維持 4）
+      // 五子棋：實測（各 80 盤）深度 6–8 反而輸給困難（Elo −80 ~ −127），深度 5 與困難持平，故設為 5
       depthByGame: {
-        gomoku: 8,
+        gomoku: 5,
         othello: 12,
         draughts: 12,
         xiangqi: 12,
@@ -914,8 +921,53 @@
   // ============================================================================
   // SPECIALIZED GO & BACKGAMMON MULTI-TIER SEARCHERS
   // ============================================================================
+  /**
+   * 圍棋虛手判斷：
+   * 1. 對方剛虛手，且以數子法計算我方領先 → 虛手結束對局；
+   * 2. 除了虛手之外只剩填自己眼位的走法 → 虛手（避免自填眼位被吃）。
+   * @returns {Object|null} 應虛手時回傳虛手走法
+   */
+  function goPassDecision(rule, state, legalMoves) {
+    var passMove = null;
+    var hasUsefulMove = false;
+    for (var i = 0; i < legalMoves.length; i++) {
+      var m = legalMoves[i];
+      if (m.action === 'pass') passMove = m;
+      else if (!m.likelyOwnEye) hasUsefulMove = true;
+    }
+    if (!passMove) return null;
+    if (!hasUsefulMove) return passMove;
+    if ((state.consecutivePasses || 0) >= 1 && typeof rule.computeAreaScore === 'function') {
+      var score = rule.computeAreaScore(state);
+      if (score.winner === state.currentPlayer) return passMove;
+    }
+    return null;
+  }
+
   function chooseGoMoveByTier(rule, state, legalMoves, profile, levelKey) {
     var rootPlayer = state.currentPlayer;
+    var passNow = goPassDecision(rule, state, legalMoves);
+    if (passNow) {
+      BoardArena.AI.lastSearchStats = {
+        gameId: 'go',
+        levelKey: levelKey,
+        depthReached: 0,
+        nodes: 1,
+        elapsedMs: 0,
+        bestScore: 0,
+        source: 'go-pass-decision'
+      };
+      return passNow;
+    }
+
+    // 蒙地卡羅樹搜尋（go-mcts.js）；設定 BoardArena.AI.goEngine = 'alphabeta' 可改回舊演算法（量測比較用）
+    if (BoardArena.GoMCTS && BoardArena.AI.goEngine !== 'alphabeta') {
+      var mcts = BoardArena.GoMCTS.chooseMove(rule, state, legalMoves, levelKey);
+      if (mcts && mcts.move) {
+        BoardArena.AI.lastSearchStats = mcts.stats;
+        return mcts.move;
+      }
+    }
     var candidates = orderAndFilterMoves('go', rule, state, legalMoves, profile.maxBranch, 0, null, null);
     if (candidates.length === 0) return legalMoves[0];
 

@@ -1,5 +1,11 @@
 // ============================================
 // Date: 2026-11-05
+// Version: v1.1.1
+// Changes: Resolve engine path relative to this script (pages in sub-folders loaded a wrong URL)
+// 修改: 引擎路徑改以本檔案位置推算（子目錄的頁面原本會載入錯誤路徑）
+// ============================================
+// ============================================
+// Date: 2026-11-05
 // Version: v1.1.0
 // Changes: Send move history (position fen ... moves ...) so the engine sees repetitions (perpetual check / sennichite)
 // 修改: 傳入棋步歷史給引擎，讓引擎能判斷長將與千日手
@@ -277,7 +283,14 @@
     );
   }
 
+  // 以本檔案（js/ai/fsf-bridge.js）的位置推算引擎路徑，任何目錄下的頁面載入都正確
+  const SCRIPT_URL =
+    typeof document !== 'undefined' && document.currentScript && document.currentScript.src
+      ? document.currentScript.src
+      : null;
+
   function engineBaseUrl() {
+    if (SCRIPT_URL) return new URL('../vendor/fairy-stockfish/', SCRIPT_URL).href;
     return new URL('js/vendor/fairy-stockfish/', document.baseURI).href;
   }
 

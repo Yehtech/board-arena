@@ -28,6 +28,15 @@ node tests/node/rules-regression.test.js      # 跳棋 perft 預設驗到第 5 �
 node tests/node/rules-regression.test.js 7    # 驗到第 7 層（約 20 秒）
 ```
 
+棋力量測（自我對戰，估計各難度之間的等級分差）：
+
+```
+node tests/strength/elo-ladder.js --games=24            # 內建 JS AI，8 種棋 × 相鄰難度
+node tests/strength/elo-ladder.js --only=go --games=40  # 只量圍棋
+```
+
+結果寫入 `tests/strength/results/latest.md`。西洋棋／象棋／將棋的引擎難度要在瀏覽器量：用本機 HTTP 伺服器開啟 `tests/strength/engine-ladder.html?games=8`。
+
 ## 規則與驗證
 
 | 棋種 | 依據 | 驗證方式 |
@@ -44,7 +53,8 @@ node tests/node/rules-regression.test.js 7    # 驗到第 7 層（約 20 秒）
 | 棋種 | 簡單／普通 | 困難／大師 |
 |---|---|---|
 | 西洋棋、中國象棋、日本將棋 | 內建 JS AI | **Fairy-Stockfish**（WebAssembly，在玩家瀏覽器內執行） |
-| 其他五種 | 內建 JS AI | 內建 JS AI（迭代加深，大師每步約 1 秒） |
+| 圍棋 | 蒙地卡羅樹搜尋（UCT + RAVE，`js/ai/go-mcts.js`），模擬次數隨難度增加 | 同左，大師每步約 1 秒（9 路約 1.2 萬次模擬） |
+| 黑白棋、跳棋、五子棋、雙陸棋 | 內建 JS AI | 內建 JS AI（迭代加深，大師每步約 1 秒） |
 
 - Fairy-Stockfish 需要瀏覽器支援「跨來源隔離」。網站透過 `coi-sw.js`（Service Worker）補上必要標頭，**第一次造訪會自動重新整理一次**。
 - 不支援的環境（舊瀏覽器、直接用 file:// 開檔、記憶體不足）會自動改用內建 AI，不影響遊玩。

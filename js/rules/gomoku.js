@@ -710,7 +710,10 @@
       }
     }
 
-    const diff = scores[me] - scores[opp] * 1.12;
+    // 對手分數權重（>1 偏防守）。可由 BoardArena.TUNING.gomokuDefenseWeight 調整，供棋力實驗使用
+    const defenseWeight =
+      BoardArena.TUNING && typeof BoardArena.TUNING.gomokuDefenseWeight === 'number' ? BoardArena.TUNING.gomokuDefenseWeight : 1.12;
+    const diff = scores[me] - scores[opp] * defenseWeight;
     if (diff > 99000) return 99000;
     if (diff < -99000) return -99000;
     return Math.round(diff);

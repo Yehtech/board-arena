@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+============================================
+Date: 2026-11-05
+Version: v1.0.0
+Changes: Browser strength ladder for engine-backed levels (chess / xiangqi / shogi: JS normal vs FSF hard vs FSF master)
+修改: 瀏覽器內的引擎難度棋力量測（西洋棋／象棋／將棋：JS 普通 vs 引擎困難 vs 引擎大師）
+============================================
+用法：用本機 HTTP 伺服器（需要跨來源隔離，例如透過 coi-sw.js）開啟
+  tests/strength/engine-ladder.html?games=8&only=chess,xiangqi,shogi
+結果顯示在頁面上，若網址帶 report=1 也會 POST 到 /__result。
+-->
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>Engine Strength Ladder</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 16px; }
+    pre { white-space: pre-wrap; }
+  </style>
+  <script>
+    (function () {
+      if (window.crossOriginIsolated || !window.isSecureContext || !('serviceWorker' in navigator)) return;
+      if (!navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
+      }
+      navigator.serviceWorker.register('../../coi-sw.js', { scope: '../../' });
+    })();
+  </script>
+</head>
+<body>
+  <h1>Engine Strength Ladder</h1>
+  <pre id="log">running…</pre>
+  <script src="../../js/rules/rules-core.js"></script>
+  <script src="../../js/rules/chess.js"></script>
+  <script src="../../js/rules/xiangqi.js"></script>
+  <script src="../../js/rules/shogi.js"></script>
+  <script src="../../js/ai/ai-engine.js"></script>
+  <script src="../../js/ai/fsf-bridge.js"></script>
+  <script>
+    (async function () {
+      try {
+        await runLadder();
+      } catch (err) {
+        document.getElementById('log').textContent += '\nFATAL: ' + (err && err.stack || err);
+        if (new URLSearchParams(location.search).get('report') === '1') {
+          fetch('/__result', { method: 'POST', body: JSON.stringify({ done: true, error: String(err && err.message) }) });
+        }
+        document.title = 'LADDER_FAILED';
+      }
+    })();
+
+    async function runLadder() {
+      const params = new URLSearchParams(location.search);
+      const gamesPerPair = Math.max(2, Number(params.get('games') || 8) & ~1);
+      const only = (params.get('only') || 'chess,xiangqi,shogi').split(',');
+      const pairs = (params.get('pairs') || 'normal-hard,hard-master').split(',').map((p) => p.split('-'));
+      const MAX_PLIES = { chess: 300, xiangqi: 300, shogi: 320 };
+      const logEl = document.getElementById('log');
+      const lines = [];
+      const log = (s) => { lines.push(s); logEl.textContent = lines.join('\n'); };
+      const post = (obj) => params.get('report') === '1' ? fetch('/__result', { method: 'POST', body: JSON.stringify(obj) }) : null;
+
+      if (!window.crossOriginIsolated) { log('Not cross-origin isolated yet (reloading via service worker)…'); return; }
+      BoardArena.AI.useNativeEngineBridge = false;
+
+      function makeRng(seed) { let s = seed >>> 0 || 1; return (n) => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return (s >>> 8) % n; }; }
+
+      let engineErrors = 0;
+      async function pickMove(g, state, level, history) {
+        if (BoardArena.FSF.shouldUseEngine(g, level)) {
+          BoardArena.AI.matchHistory = history;
+          try {
+            const res = await BoardArena.FSF.requestMove(g, state, level);
+            if (res) return res.move;
+          } catch (err) {
+            engineErrors++;
+            log('engine error (' + engineErrors + '): ' + (err && err.message));
+            if (engineErrors >= 3) throw new Error('Engine unavailable — aborting ladder');
+          }
+        }
+        return BoardArena.AI.chooseMove(g, state, level);
+      }
+
+      async function playGame(g, hi, lo, seed, hiIsP1) {
+        const rule = BoardArena.getRule(g);
+        const rnd = makeRng(seed);
+        let st = rule.createInitialState({ seed: seed });
+        for (let i = 0; i < 4 && st.status === 'playing'; i++) {
+          const legal = rule.getLegalMoves(st, st.currentPlayer);
+          st = rule.applyMove(st, legal[rnd(legal.length)]);
+        }
+        const states = [st], moves = [];
+        let plies = 0;
+        while (st.status === 'playing' && plies < MAX_PLIES[g]) {
+          const level = (st.currentPlayer === 1) === hiIsP1 ? hi : lo;
+          const mv = await pickMove(g, st, level, { states: states, moves: moves });
+          if (!mv) break;
+          moves.push(mv);
+          st = rule.applyMove(st, mv);
+          states.push(st);
+          plies++;
+        }
+        const hiPlayer = hiIsP1 ? 1 : 2;
+        const score = st.status === 'ended' && st.winner ? (st.winner === hiPlayer ? 1 : 0) : 0.5;
+        return { score: score, plies: plies, reason: st.status === 'ended' ? st.endReason : 'ply_cap' };
+      }
+
+      function eloStats(scores) {
+        const n = scores.length;
+        const mean = scores.reduce((a, b) => a + b, 0) / n;
+        const variance = scores.reduce((a, x) => a + (x - mean) * (x - mean), 0) / n;
+        const se = Math.sqrt(variance / n);
+        const clamp = (s) => Math.min(1 - 0.5 / n, Math.max(0.5 / n, s));
+        const toElo = (s) => -400 * Math.log10(1 / clamp(s) - 1);
+        return { n, mean, elo: toElo(mean), lo: toElo(mean - 1.96 * se), hi: toElo(mean + 1.96 * se) };
+      }
+      const fmt = (x) => (x >= 0 ? '+' : '') + Math.round(x);
+
+      log('games/pair=' + gamesPerPair + ' isolated=' + window.crossOriginIsolated);
+      const summary = [];
+      for (const g of only) {
+        for (const [lo, hi] of pairs) {
+          const scores = [], reasons = {};
+          let plies = 0;
+          for (let i = 0; i < gamesPerPair / 2; i++) {
+            const seed = 1000 + i * 7919 + g.length * 31;
+            for (const hiIsP1 of [true, false]) {
+              const r = await playGame(g, hi, lo, seed, hiIsP1);
+              scores.push(r.score);
+              plies += r.plies;
+              reasons[r.reason] = (reasons[r.reason] || 0) + 1;
+            }
+          }
+          const s = eloStats(scores);
+          const w = scores.filter((x) => x === 1).length, d = scores.filter((x) => x === 0.5).length, l = scores.filter((x) => x === 0).length;
+          const row = '| ' + g + ' | ' + hi + ' vs ' + lo + ' | ' + w + '-' + d + '-' + l + ' | ' + Math.round(s.mean * 100) + '% | ' +
+            fmt(s.elo) + ' (' + fmt(s.lo) + ', ' + fmt(s.hi) + ') | ' + Math.round(plies / scores.length) + ' | ' +
+            Object.entries(reasons).map(([k, v]) => k + '×' + v).join(', ') + ' |';
+          log(row);
+          summary.push(row);
+          await post({ row: row });
+        }
+      }
+      await post({ done: true, summary: summary });
+      document.title = 'LADDER_DONE';
+    }
+  </script>
+</body>
+</html>

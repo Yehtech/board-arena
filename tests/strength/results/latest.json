@@ -1,0 +1,3289 @@
+{
+ "gamesPerPair": 80,
+ "workers": 8,
+ "rows": [
+  {
+   "game": "gomoku",
+   "pair": "master~d7~ib14 vs hard",
+   "stats": {
+    "n": 80,
+    "score": 0.375,
+    "elo": -88.73949984654253,
+    "lo": -173.7438880420976,
+    "hi": -13.147597998212762,
+    "w": 30,
+    "d": 0,
+    "l": 50
+   },
+   "avgPlies": 25,
+   "msHi": 406,
+   "msLo": 49,
+   "reasons": {
+    "five_in_row": 80
+   }
+  },
+  {
+   "game": "gomoku",
+   "pair": "master~d7~ib20 vs hard",
+   "stats": {
+    "n": 80,
+    "score": 0.475,
+    "elo": -17.386277512436106,
+    "lo": -95.76547917245874,
+    "hi": 59.23552969424827,
+    "w": 38,
+    "d": 0,
+    "l": 42
+   },
+   "avgPlies": 28,
+   "msHi": 428,
+   "msLo": 46,
+   "reasons": {
+    "five_in_row": 80
+   }
+  },
+  {
+   "game": "gomoku",
+   "pair": "master~d5~ib14 vs hard",
+   "stats": {
+    "n": 80,
+    "score": 0.5,
+    "elo": 0,
+    "lo": -77.39021347855154,
+    "hi": 77.39021347855154,
+    "w": 40,
+    "d": 0,
+    "l": 40
+   },
+   "avgPlies": 30,
+   "msHi": 92,
+   "msLo": 45,
+   "reasons": {
+    "five_in_row": 80
+   }
+  },
+  {
+   "game": "gomoku",
+   "pair": "master~d6~ib14 vs hard",
+   "stats": {
+    "n": 80,
+    "score": 0.375,
+    "elo": -88.73949984654253,
+    "lo": -173.7438880420976,
+    "hi": -13.147597998212762,
+    "w": 30,
+    "d": 0,
+    "l": 50
+   },
+   "avgPlies": 25,
+   "msHi": 285,
+   "msLo": 48,
+   "reasons": {
+    "five_in_row": 80
+   }
+  }
+ ],
+ "errors": [],
+ "results": [
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.12502500000008,
+   "msPerMoveB": 52.7136777777777
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.0936428571428,
+   "msPerMoveB": 68.5307375
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.4495230769231,
+   "msPerMoveB": 42.312146153846015
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 476.31415,
+   "msPerMoveB": 47.66479000000002
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 444.87387272727267,
+   "msPerMoveB": 46.53134
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 650.2293444444443,
+   "msPerMoveB": 23.446025000000105
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.1092625000001,
+   "msPerMoveB": 58.95426666666643
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 380.6118600000001,
+   "msPerMoveB": 65.44710909090914
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 37,
+   "endReason": "five_in_row",
+   "msPerMoveA": 370.5196388888888,
+   "msPerMoveB": 42.83961578947365
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.8433142857145,
+   "msPerMoveB": 39.786762499999895
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 425.44808,
+   "msPerMoveB": 35.42865500000005
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.97668749999968,
+   "msPerMoveB": 52.650762500000155
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.3633555555555,
+   "msPerMoveB": 46.16305555555583
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 12,
+   "endReason": "five_in_row",
+   "msPerMoveA": 492.98669999999976,
+   "msPerMoveB": 50.096950000000106
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 23,
+   "endReason": "five_in_row",
+   "msPerMoveA": 626.8484833333333,
+   "msPerMoveB": 30.636872727272518
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.10211249999998,
+   "msPerMoveB": 50.81988749999982
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 491.1839,
+   "msPerMoveB": 30.016737499999863
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 356.80825000000027,
+   "msPerMoveB": 45.50538749999964
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.98124999999996,
+   "msPerMoveB": 30.12242500000002
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 33,
+   "endReason": "five_in_row",
+   "msPerMoveA": 503.86101176470606,
+   "msPerMoveB": 13.303750000000036
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.6877700000003,
+   "msPerMoveB": 23.377189999999974
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 528.4288888888893,
+   "msPerMoveB": 30.30894444444473
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 633.9769888888887,
+   "msPerMoveB": 75.52920000000066
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.69092857142925,
+   "msPerMoveB": 37.71961250000004
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.31625555555524,
+   "msPerMoveB": 39.49048888888946
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 518.7831090909094,
+   "msPerMoveB": 25.473736363636736
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.00533750000113,
+   "msPerMoveB": 42.595077777777384
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 55,
+   "endReason": "five_in_row",
+   "msPerMoveA": 204.54521785714283,
+   "msPerMoveB": 53.16597777777807
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 428.60235,
+   "msPerMoveB": 56.460185000000095
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 437.4849692307693,
+   "msPerMoveB": 58.14968461538341
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.1504999999982,
+   "msPerMoveB": 53.078124999999545
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.0372000000004,
+   "msPerMoveB": 69.39834999999994
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.28642499999995,
+   "msPerMoveB": 85.49709230769189
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 543.6521999999999,
+   "msPerMoveB": 65.40719999999887
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.3017777777782,
+   "msPerMoveB": 52.151888888888706
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 560.8868999999997,
+   "msPerMoveB": 35.787549999999705
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 528.3966999999999,
+   "msPerMoveB": 51.78728888888832
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 224.19711176470554,
+   "msPerMoveB": 39.47298823529469
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 72,
+   "endReason": "five_in_row",
+   "msPerMoveA": 414.68170555555565,
+   "msPerMoveB": 67.01944999999978
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 543.5197285714291,
+   "msPerMoveB": 42.58744285714316
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 50,
+   "endReason": "five_in_row",
+   "msPerMoveA": 494.75243999999964,
+   "msPerMoveB": 47.921895999999975
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 665.6322099999998,
+   "msPerMoveB": 50.92259999999915
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.276577777777,
+   "msPerMoveB": 54.98874444444462
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 543.3399428571419,
+   "msPerMoveB": 58.92243749999989
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 476.55562500000013,
+   "msPerMoveB": 33.25854500000005
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 271.9411,
+   "msPerMoveB": 52.90887142857173
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.94705000000067,
+   "msPerMoveB": 54.26193333333221
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 330.37718888888935,
+   "msPerMoveB": 46.18086666666649
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.64460000000173,
+   "msPerMoveB": 57.63292857142785
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 647.4750444444447,
+   "msPerMoveB": 25.293399999999565
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 72,
+   "endReason": "five_in_row",
+   "msPerMoveA": 468.88135555555607,
+   "msPerMoveB": 50.85035000000072
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 27,
+   "endReason": "five_in_row",
+   "msPerMoveA": 418.06744999999995,
+   "msPerMoveB": 41.28350769230914
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 32,
+   "endReason": "five_in_row",
+   "msPerMoveA": 594.2873750000003,
+   "msPerMoveB": 40.95095624999908
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.26505833333493,
+   "msPerMoveB": 47.31001538461547
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 609.693127272728,
+   "msPerMoveB": 43.61553000000058
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.52249999999793,
+   "msPerMoveB": 45.17508571428646
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 45,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.6929863636355,
+   "msPerMoveB": 56.549721739129936
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 39,
+   "endReason": "five_in_row",
+   "msPerMoveA": 550.7858894736844,
+   "msPerMoveB": 57.980565000000205
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 543.4566857142834,
+   "msPerMoveB": 50.4204428571424
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 38,
+   "endReason": "five_in_row",
+   "msPerMoveA": 350.6849947368414,
+   "msPerMoveB": 33.21986842105291
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 158.8918555555558,
+   "msPerMoveB": 79.09472222222232
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 31,
+   "endReason": "five_in_row",
+   "msPerMoveA": 463.1899750000007,
+   "msPerMoveB": 20.8526466666682
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 346.01993636363676,
+   "msPerMoveB": 51.0372363636376
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.652171428569,
+   "msPerMoveB": 56.7222625000004
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 356.7989875000003,
+   "msPerMoveB": 85.70908888889001
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 59,
+   "endReason": "five_in_row",
+   "msPerMoveA": 373.3830800000001,
+   "msPerMoveB": 56.97688965517265
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 292.89441538461574,
+   "msPerMoveB": 71.86522307692267
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 285.4635000000009,
+   "msPerMoveB": 44.946881818181616
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 380.6049099999997,
+   "msPerMoveB": 58.96808999999994
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 422.65927777777847,
+   "msPerMoveB": 39.755188888889585
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 309.2354388888885,
+   "msPerMoveB": 64.01833333333383
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.00013749999925,
+   "msPerMoveB": 59.77112499999839
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 356.9371999999994,
+   "msPerMoveB": 64.20671111111005
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 610.9361124999996,
+   "msPerMoveB": 52.14684285714299
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 49,
+   "endReason": "five_in_row",
+   "msPerMoveA": 436.0196833333327,
+   "msPerMoveB": 45.68862800000002
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.5917571428571,
+   "msPerMoveB": 56.76897142857342
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 339.8978642857136,
+   "msPerMoveB": 48.989264285714725
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 333.56433999999973,
+   "msPerMoveB": 58.52996999999923
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 211.9943111111101,
+   "msPerMoveB": 52.34114444444438
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.25348888888726,
+   "msPerMoveB": 50.99944000000105
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 30,
+   "endReason": "five_in_row",
+   "msPerMoveA": 507.498046666668,
+   "msPerMoveB": 46.21799333333329
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.31522499999966,
+   "msPerMoveB": 59.17899999999887
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 271.92668571428555,
+   "msPerMoveB": 56.10482499999944
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 544.8452714285714,
+   "msPerMoveB": 44.790871428570036
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 380.6008700000013,
+   "msPerMoveB": 64.78598181818366
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 605.142245454545,
+   "msPerMoveB": 25.26603000000032
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 634.0042222222231,
+   "msPerMoveB": 38.66363750000073
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 572.5222428571423,
+   "msPerMoveB": 44.31493333333128
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 370.02503333333436,
+   "msPerMoveB": 38.88931111111136
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 408.75671428571724,
+   "msPerMoveB": 34.71451250000064
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 271.9815428571414,
+   "msPerMoveB": 57.59629999999639
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 357.5714624999964,
+   "msPerMoveB": 32.586287499998434
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 12,
+   "endReason": "five_in_row",
+   "msPerMoveA": 507.32670000000144,
+   "msPerMoveB": 48.42141666666672
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.67457142857063,
+   "msPerMoveB": 37.82170000000042
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 408.47150000000175,
+   "msPerMoveB": 53.307857142856975
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 45,
+   "endReason": "five_in_row",
+   "msPerMoveA": 702.8315782608681,
+   "msPerMoveB": 45.64775000000009
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 35,
+   "endReason": "five_in_row",
+   "msPerMoveA": 280.2000058823537,
+   "msPerMoveB": 23.87568888888927
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 271.9900071428575,
+   "msPerMoveB": 48.42960714285333
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 665.740320000003,
+   "msPerMoveB": 22.742259999999078
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 319.72122083333335,
+   "msPerMoveB": 71.11105416666578
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 29,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.31106428571366,
+   "msPerMoveB": 44.78152666666526
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.191311111111,
+   "msPerMoveB": 44.457759999997506
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 76,
+   "endReason": "five_in_row",
+   "msPerMoveA": 425.7347210526329,
+   "msPerMoveB": 40.695971052632224
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 84,
+   "endReason": "five_in_row",
+   "msPerMoveA": 407.8765476190477,
+   "msPerMoveB": 48.607102380951844
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 423.04052222222447,
+   "msPerMoveB": 48.60448888888641
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 501.4039625000023,
+   "msPerMoveB": 43.6783000000014
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 476.8253333333353,
+   "msPerMoveB": 22.80879999999767
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 605.1406363636369,
+   "msPerMoveB": 21.016310000000523
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 447.66376470587977,
+   "msPerMoveB": 37.961076470586704
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 27,
+   "endReason": "five_in_row",
+   "msPerMoveA": 292.9685153846143,
+   "msPerMoveB": 57.72280714285652
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 212.21677777777788,
+   "msPerMoveB": 51.585390000001645
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 657.9486111111086,
+   "msPerMoveB": 34.94873749999897
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 618.49935,
+   "msPerMoveB": 38.43023750000248
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 439.4470999999993,
+   "msPerMoveB": 63.571350000001985
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 559.3948294117649,
+   "msPerMoveB": 48.62529411764819
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 380.66584999999907,
+   "msPerMoveB": 42.10252999999939
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 543.5547999999981,
+   "msPerMoveB": 46.94692857142737
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 211.66843333333478,
+   "msPerMoveB": 46.602855555554726
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 574.4716000000024,
+   "msPerMoveB": 55.900883333335514
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 44,
+   "endReason": "five_in_row",
+   "msPerMoveA": 518.8983000000014,
+   "msPerMoveB": 42.90083181818177
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.8547374999998,
+   "msPerMoveB": 54.05311250000159
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 12,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.65038333333604,
+   "msPerMoveB": 37.54945000000104
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 528.4779000000012,
+   "msPerMoveB": 75.14922000000225
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.33899166666865,
+   "msPerMoveB": 73.17717692307689
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 56,
+   "endReason": "five_in_row",
+   "msPerMoveA": 409.1488785714277,
+   "msPerMoveB": 53.75442142857407
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 633.9928555555574,
+   "msPerMoveB": 35.41343749999396
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.0017874999994,
+   "msPerMoveB": 51.787477777776076
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 42,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.3549619047636,
+   "msPerMoveB": 46.70243333332959
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.5761333333309,
+   "msPerMoveB": 47.4533142857108
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 333.10168999999877,
+   "msPerMoveB": 58.41216000000058
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 60,
+   "endReason": "five_in_row",
+   "msPerMoveA": 253.94677999999888,
+   "msPerMoveB": 60.90545333333236
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 47,
+   "endReason": "five_in_row",
+   "msPerMoveA": 436.1794749999984,
+   "msPerMoveB": 42.36392608695567
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 422.708766666663,
+   "msPerMoveB": 40.7202099999995
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 713.3633916666671,
+   "msPerMoveB": 15.234008333334108
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.4453124999982,
+   "msPerMoveB": 34.435408333332816
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 190.64558000000108,
+   "msPerMoveB": 38.94589090908994
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 655.1802999999943,
+   "msPerMoveB": 25.039288888889132
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 30,
+   "endReason": "five_in_row",
+   "msPerMoveA": 253.78673333333475,
+   "msPerMoveB": 51.452020000001845
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 476.2497428571452,
+   "msPerMoveB": 41.881714285712015
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.6427500000039,
+   "msPerMoveB": 53.968971428569475
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 69,
+   "endReason": "five_in_row",
+   "msPerMoveA": 300.0294828571429,
+   "msPerMoveB": 47.55282058823436
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 158.87428333333204,
+   "msPerMoveB": 45.688000000000244
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 356.8935999999994,
+   "msPerMoveB": 41.72656250000182
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 528.4447333333325,
+   "msPerMoveB": 23.427237499998228
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 555.2188916666673,
+   "msPerMoveB": 37.01530833333163
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 422.8698888888887,
+   "msPerMoveB": 31.245844444445943
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 285.8055200000032,
+   "msPerMoveB": 46.575170000000796
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.485083333333,
+   "msPerMoveB": 53.18365714286171
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.7257499999996,
+   "msPerMoveB": 46.72218749999956
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 574.8146285714299,
+   "msPerMoveB": 73.58950000000429
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.03457500000331,
+   "msPerMoveB": 61.92519999999786
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 396.5055541666631,
+   "msPerMoveB": 71.09899583333572
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 38,
+   "endReason": "five_in_row",
+   "msPerMoveA": 450.63886315789455,
+   "msPerMoveB": 67.31801052631559
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.8271583333335,
+   "msPerMoveB": 74.09123749999829
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 422.90932222222426,
+   "msPerMoveB": 57.11766250000073
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 47.516733333331814,
+   "msPerMoveB": 52.57241111111135
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 81,
+   "endReason": "five_in_row",
+   "msPerMoveA": 626.3531682926852,
+   "msPerMoveB": 37.074465000000785
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 528.4194666666655,
+   "msPerMoveB": 39.77754444444468
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 658.3488076923106,
+   "msPerMoveB": 37.964261538464385
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 37,
+   "endReason": "five_in_row",
+   "msPerMoveA": 67.4866388888897,
+   "msPerMoveB": 40.059568421051246
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 52.54806666666506,
+   "msPerMoveB": 62.304153846154804
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 101.4092823529414,
+   "msPerMoveB": 55.62485882353041
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 128.04884000000166,
+   "msPerMoveB": 30.446177777779262
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 35,
+   "endReason": "five_in_row",
+   "msPerMoveA": 87.6927944444453,
+   "msPerMoveB": 39.21467647058906
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 41.48227500000212,
+   "msPerMoveB": 70.89402222222189
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 32,
+   "endReason": "five_in_row",
+   "msPerMoveA": 71.996731250003,
+   "msPerMoveB": 16.814862500003073
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 52.45122500000434,
+   "msPerMoveB": 52.89842222222069
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 136.0587428571432,
+   "msPerMoveB": 45.8470666666714
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 95.05466250000063,
+   "msPerMoveB": 20.076175000001967
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 27,
+   "endReason": "five_in_row",
+   "msPerMoveA": 138.33840000000055,
+   "msPerMoveB": 14.709353846154185
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 68.17576666666476,
+   "msPerMoveB": 67.94681666666777
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 55.58980000000364,
+   "msPerMoveB": 54.50057142857362
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 53,
+   "endReason": "five_in_row",
+   "msPerMoveA": 70.45830000000122,
+   "msPerMoveB": 47.335262962965146
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 37,
+   "endReason": "five_in_row",
+   "msPerMoveA": 32.67989999999745,
+   "msPerMoveB": 50.638683333331656
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 70.62135000000369,
+   "msPerMoveB": 49.17361428571375
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 94.49636999999784,
+   "msPerMoveB": 32.16774000000005
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 68.29158571428603,
+   "msPerMoveB": 53.0670000000017
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 43,
+   "endReason": "five_in_row",
+   "msPerMoveA": 47.78053636363488,
+   "msPerMoveB": 48.849771428571934
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 71.75988461538734,
+   "msPerMoveB": 40.09290769230798
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 49,
+   "endReason": "five_in_row",
+   "msPerMoveA": 380.6155679999967,
+   "msPerMoveB": 45.0540666666681
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 42,
+   "endReason": "five_in_row",
+   "msPerMoveA": 95.63884285714205,
+   "msPerMoveB": 42.42230476190508
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 43,
+   "endReason": "five_in_row",
+   "msPerMoveA": 124.6848761904763,
+   "msPerMoveB": 36.13262272727231
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 117.84630909090893,
+   "msPerMoveB": 30.06848000000027
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 57.26476363636109,
+   "msPerMoveB": 69.9219909090898
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 41.910838461537004,
+   "msPerMoveB": 53.065092307690065
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 60,
+   "endReason": "five_in_row",
+   "msPerMoveA": 99.79010666666582,
+   "msPerMoveB": 26.234866666666736
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 117.84890000000208,
+   "msPerMoveB": 28.80183333333116
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 59,
+   "endReason": "five_in_row",
+   "msPerMoveA": 59.95323103448077,
+   "msPerMoveB": 57.46495999999994
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 84.86422307692163,
+   "msPerMoveB": 43.7454307692309
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 55,
+   "endReason": "five_in_row",
+   "msPerMoveA": 103.3652925925907,
+   "msPerMoveB": 30.836903571428724
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 27,
+   "endReason": "five_in_row",
+   "msPerMoveA": 71.66137692307642,
+   "msPerMoveB": 43.423964285716856
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 133.76127500000257,
+   "msPerMoveB": 38.282562500000495
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 87.66831111110999,
+   "msPerMoveB": 44.02328888888587
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 40.26225555555558,
+   "msPerMoveB": 51.53570000000182
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 106.67376923076853,
+   "msPerMoveB": 61.25875833333581
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 129.073420000005,
+   "msPerMoveB": 24.756122222220355
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 127.45582857142601,
+   "msPerMoveB": 62.503957142855924
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 88.41300769230628,
+   "msPerMoveB": 35.995800000001815
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 117.59504615384168,
+   "msPerMoveB": 30.203861538459584
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 149.46621428572067,
+   "msPerMoveB": 34.672792857142795
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 32,
+   "endReason": "five_in_row",
+   "msPerMoveA": 117.3596187499952,
+   "msPerMoveB": 40.0369687500006
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 67.73266666666557,
+   "msPerMoveB": 53.94869999999691
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 23,
+   "endReason": "five_in_row",
+   "msPerMoveA": 115.20630000000044,
+   "msPerMoveB": 26.36329090909302
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 52,
+   "endReason": "five_in_row",
+   "msPerMoveA": 49.787761538459634,
+   "msPerMoveB": 48.478676923079405
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 76.67438888889026,
+   "msPerMoveB": 41.53817000000563
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 97,
+   "endReason": "five_in_row",
+   "msPerMoveA": 124.19070624999979,
+   "msPerMoveB": 51.430804081630896
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 47,
+   "endReason": "five_in_row",
+   "msPerMoveA": 132.13552916666472,
+   "msPerMoveB": 43.45060869565097
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d7~ib20",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 70,
+   "endReason": "five_in_row",
+   "msPerMoveA": 598.6969999999984,
+   "msPerMoveB": 49.05507142857116
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 81.34172000000108,
+   "msPerMoveB": 59.16642500000016
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 185.10545384615455,
+   "msPerMoveB": 46.67016153846411
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 183.2323777777783,
+   "msPerMoveB": 20.349633333337906
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 33,
+   "endReason": "five_in_row",
+   "msPerMoveA": 56.96229411764687,
+   "msPerMoveB": 59.40263749999758
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 46,
+   "endReason": "five_in_row",
+   "msPerMoveA": 79.19016086956633,
+   "msPerMoveB": 64.17928695652012
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 108.52100999999675,
+   "msPerMoveB": 17.799120000001857
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 33.56852083333555,
+   "msPerMoveB": 57.461362500005635
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 65.99701818181148,
+   "msPerMoveB": 38.05713999999862
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 138.46972499999902,
+   "msPerMoveB": 59.79842222221972
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 99.88013636363956,
+   "msPerMoveB": 21.159909090900328
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 56.61181666666622,
+   "msPerMoveB": 48.36681428572462
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 123.24038461538461,
+   "msPerMoveB": 19.770684615386507
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 103.52812857142999,
+   "msPerMoveB": 30.778100000005605
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 57.83346000000311,
+   "msPerMoveB": 20.123679999998423
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 40.34783636363466,
+   "msPerMoveB": 51.52913636363387
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 48,
+   "endReason": "five_in_row",
+   "msPerMoveA": 137.91059166666795,
+   "msPerMoveB": 26.760866666667425
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 105.20476500000368,
+   "msPerMoveB": 55.92449500000366
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 90.62467058823506,
+   "msPerMoveB": 44.835123529412904
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 29,
+   "endReason": "five_in_row",
+   "msPerMoveA": 88.5601071428599,
+   "msPerMoveB": 45.159606666663116
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 23,
+   "endReason": "five_in_row",
+   "msPerMoveA": 109.51142499999696,
+   "msPerMoveB": 24.923481818180086
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 81.20358181818102,
+   "msPerMoveB": 74.03554545454575
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 99.37520909090314,
+   "msPerMoveB": 47.98871818181678
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 157.9234166666623,
+   "msPerMoveB": 55.15449999999588
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 118.2280142857136,
+   "msPerMoveB": 72.75170000000314
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 80.63910000000033,
+   "msPerMoveB": 57.368725000003906
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 19,
+   "endReason": "five_in_row",
+   "msPerMoveA": 63.43611111111628,
+   "msPerMoveB": 67.69741999999678
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 170.96853333333598,
+   "msPerMoveB": 51.95611111110904
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 120.21397777778071,
+   "msPerMoveB": 39.660349999987375
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 23,
+   "endReason": "five_in_row",
+   "msPerMoveA": 58.02390000000014,
+   "msPerMoveB": 52.559018181816846
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 85.28830000000148,
+   "msPerMoveB": 49.94090000000274
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 205.07619999999795,
+   "msPerMoveB": 61.30265000000509
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 182.87719285714516,
+   "msPerMoveB": 39.884307142856414
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 105,
+   "endReason": "five_in_row",
+   "msPerMoveA": 77.08514999999898,
+   "msPerMoveB": 39.44750943396159
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 289.42577272727397,
+   "msPerMoveB": 49.77076000000234
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d5~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 87,
+   "endReason": "five_in_row",
+   "msPerMoveA": 81.82087272727222,
+   "msPerMoveB": 51.17749999999813
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 135.61563750000278,
+   "msPerMoveB": 47.88178888888797
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 434.1164111111171,
+   "msPerMoveB": 24.656587500005116
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 41,
+   "endReason": "five_in_row",
+   "msPerMoveA": 260.0017399999997,
+   "msPerMoveB": 55.886823809524124
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 219.4219625000078,
+   "msPerMoveB": 56.33560000000418
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.7812600000092,
+   "msPerMoveB": 64.53228181818585
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 412.57516250000117,
+   "msPerMoveB": 40.33185714285771
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 38,
+   "endReason": "five_in_row",
+   "msPerMoveA": 306.4159105263166,
+   "msPerMoveB": 48.90837894736844
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 279.318828571434,
+   "msPerMoveB": 37.334162500003
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 12,
+   "endReason": "five_in_row",
+   "msPerMoveA": 298.17531666666036,
+   "msPerMoveB": 53.881666666668025
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 201.9790999999936,
+   "msPerMoveB": 46.024711111110975
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 193.4080874999927,
+   "msPerMoveB": 52.108024999997724
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 141.8036500000053,
+   "msPerMoveB": 47.243537500005914
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 311.9282624999905,
+   "msPerMoveB": 28.87344999999914
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 267.91504000000424,
+   "msPerMoveB": 23.54578999999503
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 33,
+   "endReason": "five_in_row",
+   "msPerMoveA": 351.91147058823503,
+   "msPerMoveB": 14.111425000002782
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 233.85109999999622,
+   "msPerMoveB": 46.751712499997666
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 293.59916666666527,
+   "msPerMoveB": 30.897288888890117
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 192.418233333335,
+   "msPerMoveB": 30.952808333337696
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 35,
+   "endReason": "five_in_row",
+   "msPerMoveA": 493.1996611111115,
+   "msPerMoveB": 28.37602352941073
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 232.8776714285694,
+   "msPerMoveB": 36.933025000009366
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 410.7775444444495,
+   "msPerMoveB": 77.25844444444455
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 317.63419090908826,
+   "msPerMoveB": 26.09059999999855
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 24,
+   "endReason": "five_in_row",
+   "msPerMoveA": 250.24004999999306,
+   "msPerMoveB": 56.11233333334045
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 178.16169999999693,
+   "msPerMoveB": 44.77288888888951
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 180.11261111111446,
+   "msPerMoveB": 42.82085555556114
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 272.18935499999935,
+   "msPerMoveB": 55.4881849999947
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 55,
+   "endReason": "five_in_row",
+   "msPerMoveA": 148.8212464285742,
+   "msPerMoveB": 51.005270370370624
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 195.1122000000032,
+   "msPerMoveB": 52.69502499999362
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 235.13761428571055,
+   "msPerMoveB": 70.04820000000109
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.95261666666434,
+   "msPerMoveB": 82.92479999999901
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 237.7953777777762,
+   "msPerMoveB": 54.09003333333143
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 54,
+   "endReason": "five_in_row",
+   "msPerMoveA": 281.1574333333313,
+   "msPerMoveB": 44.379325925926594
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 262.84512857142755,
+   "msPerMoveB": 72.05434999999748
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 482.3761571428539,
+   "msPerMoveB": 35.74488333333769
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 390.43758888888664,
+   "msPerMoveB": 47.72982222221779
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 34,
+   "endReason": "five_in_row",
+   "msPerMoveA": 183.07885294117594,
+   "msPerMoveB": 37.02787647059064
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 50,
+   "endReason": "five_in_row",
+   "msPerMoveA": 316.2145079999999,
+   "msPerMoveB": 48.15195200000191
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 486.8100142857168,
+   "msPerMoveB": 42.99151428571453
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 386.6458200000023,
+   "msPerMoveB": 52.580420000001325
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 336.13733499999944,
+   "msPerMoveB": 34.21619500000088
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 498.2685000000056,
+   "msPerMoveB": 54.672575000000506
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 261.5642888888898,
+   "msPerMoveB": 58.44106666666145
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 211.5394714285628,
+   "msPerMoveB": 49.309442857147324
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 184.00263750000158,
+   "msPerMoveB": 51.79243333333094
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 196.63071111111074,
+   "msPerMoveB": 45.285366666668175
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 425.7926888888954,
+   "msPerMoveB": 24.44384999999602
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 358.9897857142787,
+   "msPerMoveB": 63.04479999999915
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 27,
+   "endReason": "five_in_row",
+   "msPerMoveA": 196.78539285714007,
+   "msPerMoveB": 41.90050769231255
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 32,
+   "endReason": "five_in_row",
+   "msPerMoveA": 349.77959374999773,
+   "msPerMoveB": 43.42794374999721
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 72,
+   "endReason": "five_in_row",
+   "msPerMoveA": 331.8452666666692,
+   "msPerMoveB": 50.488750000002454
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 25,
+   "endReason": "five_in_row",
+   "msPerMoveA": 221.5648833333374,
+   "msPerMoveB": 47.662246153842155
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 273.39114999999583,
+   "msPerMoveB": 45.735399999996716
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 222.82093333333938,
+   "msPerMoveB": 32.71438888888547
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 386.8932000000019,
+   "msPerMoveB": 42.874139999996984
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 352.71920000000523,
+   "msPerMoveB": 31.72743333333185
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 38,
+   "endReason": "five_in_row",
+   "msPerMoveA": 213.74539473684547,
+   "msPerMoveB": 32.218131578950164
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 39,
+   "endReason": "five_in_row",
+   "msPerMoveA": 372.74031578947324,
+   "msPerMoveB": 56.81040000000066
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 466.96328571428813,
+   "msPerMoveB": 50.58464285714269
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 36,
+   "endReason": "five_in_row",
+   "msPerMoveA": 102.17627777777346,
+   "msPerMoveB": 77.58989444444563
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 22,
+   "endReason": "five_in_row",
+   "msPerMoveA": 267.2463909090888,
+   "msPerMoveB": 52.95567272727071
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 158.7982571428625,
+   "msPerMoveB": 54.353912500009756
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 26,
+   "endReason": "five_in_row",
+   "msPerMoveA": 160.6817615384621,
+   "msPerMoveB": 69.10630769230417
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 45,
+   "endReason": "five_in_row",
+   "msPerMoveA": 379.3141318181826,
+   "msPerMoveB": 57.62996521739304
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 21,
+   "endReason": "five_in_row",
+   "msPerMoveA": 174.28324999999603,
+   "msPerMoveB": 46.58279999999848
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 49,
+   "endReason": "five_in_row",
+   "msPerMoveA": 212.68050416666543,
+   "msPerMoveB": 45.54167599999811
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 17,
+   "endReason": "five_in_row",
+   "msPerMoveA": 337.85302500000034,
+   "msPerMoveB": 85.52350000000054
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 20,
+   "endReason": "five_in_row",
+   "msPerMoveA": 295.5997699999978,
+   "msPerMoveB": 60.088159999999334
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 18,
+   "endReason": "five_in_row",
+   "msPerMoveA": 323.9373444444435,
+   "msPerMoveB": 39.38938888888353
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 13,
+   "endReason": "five_in_row",
+   "msPerMoveA": 475.7215166666671,
+   "msPerMoveB": 53.94835714285312
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 15,
+   "endReason": "five_in_row",
+   "msPerMoveA": 484.60948749999443,
+   "msPerMoveB": 50.207828571421224
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 16,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.0510000000031,
+   "msPerMoveB": 61.48488750000615
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 14,
+   "endReason": "five_in_row",
+   "msPerMoveA": 334.37774285715255,
+   "msPerMoveB": 55.20357142857392
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 67,
+   "endReason": "five_in_row",
+   "msPerMoveA": 175.56773235294145,
+   "msPerMoveB": 48.28821515151084
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 0,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 238.70529999999522,
+   "msPerMoveB": 44.17572142857119
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 40,
+   "endReason": "five_in_row",
+   "msPerMoveA": 251.36794500000104,
+   "msPerMoveB": 54.175149999998396
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 28,
+   "endReason": "five_in_row",
+   "msPerMoveA": 321.39112857142965,
+   "msPerMoveB": 42.07000714286031
+  },
+  {
+   "game": "gomoku",
+   "a": "master~d6~ib14",
+   "b": "hard",
+   "scoreA": 1,
+   "plies": 30,
+   "endReason": "five_in_row",
+   "msPerMoveA": 339.492246666669,
+   "msPerMoveB": 40.81862000000159
+  }
+ ]
+}
